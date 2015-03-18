@@ -1,0 +1,1 @@
+Nombre de reads : 12 et le nombre de reads non mappés : 1 
