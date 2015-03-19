@@ -1,33 +1,60 @@
-/**
-
-cat file.sam | countalign > count.txt
-
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #include "sam.h"
 
 #include "debug.h"
 
-
+/* sam_hdr_write(out, header) */
 
 int main(int argc, char** argv)
 	{
 
-	FILE * fichier;
-	FILE * rapport; 
+	FILE* input_file=NULL;
+	FILE* output_file=NULL;
+	FILE * fichier;	
+
+	DEBUG;
+	int c;
+	char* f_in; 
+	char* f_out; 
 
 	
-	rapport=fopen("rapport.bam","w+");
-	fclose(rapport);
+	// get commande line options
+	 while ((c = getopt(argc, argv,"o:O:")) != -1) {
+	 switch(c)
+	 {
+	 case 'o': f_in = strdup(optarg); break;
+	// case 'O' : f_out = strdup(optarg);   break;
+	 }
+	 }
+
+	
+	
+ 	bam_hdr_t *header=NULL;
 	DEBUG;
-	samfile_t *fp = samopen("/home/bird/packages/samtools/examples/toy.sam", "rb", 0); 
-	//samfile_t *out = samopen("rapport.bam", "w", 0); 
+	
+	samFile *fp = sam_open((input_file? input_file : "-")); 
+	if (fp == NULL) 
+	{
+        fprintf(stderr,"Cannot read file");
+        return 1;
+        }
+        
 	DEBUG;
+	header = sam_header_read(fp);
 	bam1_t *b = NULL;
+
+	if( header == NULL)
+	{
+	fprintf(stderr, "Try again \n");
+	}
+
+
+	DEBUG;
+	samfile_t *out = samopen((output_file? output_file : "sample.bam"), "w", 0 ); // reussir à prendre le "> out.bam" au lieu de "sample.bam"
+    	//sam_hdr_write(out, header); 
+	DEBUG;
 
 	long nReads=0;
 	long nbNoMap=0;
@@ -39,34 +66,36 @@ int main(int argc, char** argv)
 	{
 		fprintf(stderr,"fichier non ouvert\n");
 	} 
-		 
+		      
 
 	
 
 		DEBUG;
 
-		while(samread(fp, b) >= 0)
+		while(sam_read1(fp, header, b) >= 0)
 		{ 
 			nReads++;
-			if ( b->core.flag == 163 )
+			if ( (b->core.flag & BAM_FUNMAP ) || (b->core.flag & BAM_FMUNMAP ))
 				{
 				nbNoMap++;
-				rapport=fopen("rapport.bam","w+");
-				fprintf(rapport, "%d %d %d %d %d %d %d %d ", b->core.flag, b->core.pos, b->core.n_cigar, b->core.tid, b->core.bin, b->core.qual, b->core.l_qname, b->core.l_qseq);
-				fclose(rapport);
+
+				//samwrite(out, b); Une subtilité pour écrire dans le fichier sam ? allocation dynamique
 				}
   
 		}
 		DEBUG;
+		
+	
 
  
- 		fichier=fopen("count.txt","w+");
+ 		fichier=fopen(f_in,"w+");
       		fprintf(fichier,"Nombre de reads : %lu et le nombre de reads non mappés : %lu \n", nReads, nbNoMap);
         	fclose(fichier);
 
 
 		bam_destroy1(b);
-		samclose(fp); 
+		sam_close(fp); 
+		samclose(out);
 		
 	
 
