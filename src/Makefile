@@ -15,8 +15,7 @@ all: countalign test20150317 test
 test: countalign.txt
 
 countalign.txt : countalign
-	cat /home/bird/masterm2/sample.bam  | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ > test.bam 
-
+	cat /home/bird/masterm2/sample.bam  | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ > test.bam
 countalign : countalign.o
 	${CC} -o $@  ${LDFLAGS} $< ${sam.libs}
 
@@ -31,4 +30,5 @@ clean:
 	rm -rf $(dir $(TARGETS))
 	
 
+	
 	

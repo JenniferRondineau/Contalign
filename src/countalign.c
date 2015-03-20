@@ -112,3 +112,9 @@ int main(int argc, char** argv)
 
         return 0;
         }
+        
+        
+        
+        // ensuite possible de transformer du BAM en FASTQ par cette commande : samtools bam2fq test.bam > test.fastq
+        // le fichier .fastq va pouvoir servir pour faire les alignements avec les réferences des contaminants.
+        
