@@ -5,7 +5,7 @@
 
 #include "debug.h"
 
-/* sam_hdr_write(out, header) */
+
 
 int main(int argc, char** argv)
 	{
@@ -17,7 +17,8 @@ int main(int argc, char** argv)
 	DEBUG;
 	int c;
 	char* f_in; 
-	char* f_out; 
+
+
 
 	
 	// get commande line options
@@ -32,9 +33,12 @@ int main(int argc, char** argv)
 	
 	
  	bam_hdr_t *header=NULL;
+
+
 	DEBUG;
 	
 	samFile *fp = sam_open((input_file? input_file : "-")); 
+	
 	if (fp == NULL) 
 	{
         fprintf(stderr,"Cannot read file");
@@ -42,29 +46,37 @@ int main(int argc, char** argv)
         }
         
 	DEBUG;
-	header = sam_header_read(fp);
+	header = sam_hdr_read(fp);
 	bam1_t *b = NULL;
 
+	
 	if( header == NULL)
 	{
-	fprintf(stderr, "Try again \n");
+	fprintf(stderr, "Cannot read header \n");
 	}
 
 
 	DEBUG;
-	samfile_t *out = samopen((output_file? output_file : "sample.bam"), "w", 0 ); // reussir à prendre le "> out.bam" au lieu de "sample.bam"
-    	//sam_hdr_write(out, header); 
+	samfile_t *out_file = samopen((output_file? output_file : "test.bam"), "wb", header ); // reussir à prendre le "> out.bam" au lieu de "sample.bam"
+
+	
 	DEBUG;
+	
+	
+	if (out_file == NULL) 
+	{
+		fprintf(stderr,"Failed to open output file.\n");
+	} 
 
 	long nReads=0;
-	long nbNoMap=0;
+	long nbUnMap=0;
 	b = bam_init1();
 	
 	DEBUG;
 
 	if(NULL == fp)
 	{
-		fprintf(stderr,"fichier non ouvert\n");
+		fprintf(stderr,"Failed to open input file.\n");
 	} 
 		      
 
@@ -77,27 +89,25 @@ int main(int argc, char** argv)
 			nReads++;
 			if ( (b->core.flag & BAM_FUNMAP ) || (b->core.flag & BAM_FMUNMAP ))
 				{
-				nbNoMap++;
-
-				//samwrite(out, b); Une subtilité pour écrire dans le fichier sam ? allocation dynamique
+				nbUnMap++;
+				samwrite(out_file, b); 
 				}
   
 		}
 		DEBUG;
 		
 	
-
- 
  		fichier=fopen(f_in,"w+");
-      		fprintf(fichier,"Nombre de reads : %lu et le nombre de reads non mappés : %lu \n", nReads, nbNoMap);
+      		fprintf(fichier,"Nombre de reads : %lu et le nombre de reads non mappés : %lu \n", nReads, nbUnMap);
         	fclose(fichier);
-
+		DEBUG;
 
 		bam_destroy1(b);
-		sam_close(fp); 
-		samclose(out);
 		
-	
+		sam_close(fp); 
+		samclose(out_file);
+		DEBUG;
+
 
 
         return 0;

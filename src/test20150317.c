@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 	int c;
 	while((c=fgetc(input))!=-1)
 	        {
-	        fprintf(output,"%c.",c);
+	        fprintf(output,"%c",c);
 	        }
 	
         return 0;
