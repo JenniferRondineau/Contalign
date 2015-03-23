@@ -2,6 +2,8 @@
 #(tab)comment faire cible a partir de dependance
 # $@ = nom de la cible
 # $< est le nom de la PREMIERE dependance
+.PHONY:all test clean
+sample.bam=/home/bird/masterm2/sample.bam
 CC=gcc
 PACKAGES=../../packages
 samtools.dir=${PACKAGES}/samtools
@@ -13,9 +15,18 @@ sam.libs= -lbam -lhts
 all: countalign test20150317 test
 
 test: countalign.txt
+	@echo -n "Nombre de Read dans ${sample.bam} "
+	@${PACKAGES}/samtools/samtools view -c ${sample.bam}
+	@echo -n "Nimber de Reads dans test.bam"
+	@${PACKAGES}/samtools/samtools view -c test.bam
+	@echo -n "Nombre de Reads NON MAPPES dans ${sample.bam} "
+	@${PACKAGES}/samtools/samtools view -f 4 -c ${sample.bam}
+	@echo -n "Nombre de Reads NON MAPPES dans $< : "
+	@cat $<
 
 countalign.txt : countalign
-	cat /home/bird/masterm2/sample.bam  | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ > test.bam
+	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ > test.bam
+	
 countalign : countalign.o
 	${CC} -o $@  ${LDFLAGS} $< ${sam.libs}
 
@@ -28,7 +39,7 @@ test20150317: test20150317.c
 clean:
 	rm -f countalign
 	rm -rf $(dir $(TARGETS))
-	
+
 
 	
-	
+
