@@ -15,11 +15,11 @@ sam.libs= -lbam -lhts
 all: countalign test20150317 test
 
 test: countalign.txt
-	@echo -n "Nombre de Read dans ${sample.bam} "
+	@echo -n "Nombre de Read dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -c ${sample.bam}
-	@echo -n "Nimber de Reads dans test.bam"
+	@echo -n "Nombre de Reads dans test.bam : "
 	@${PACKAGES}/samtools/samtools view -c test.bam
-	@echo -n "Nombre de Reads NON MAPPES dans ${sample.bam} "
+	@echo -n "Nombre de Reads NON MAPPES dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -f 4 -c ${sample.bam}
 	@echo -n "Nombre de Reads NON MAPPES dans $< : "
 	@cat $<

@@ -28,12 +28,14 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 #include "sam.h"
+#include "sam_header.h"
 #include "debug.h"
 #include <errno.h>  
 
 
 static void usage ()
 { 
+/* cf isatty */
 fprintf(stderr,
 "\nUsage : cat file.bam | ./countalign -o file.txt > file.bam \n\
 \n\
@@ -106,22 +108,25 @@ int main(int argc, char** argv)
 		 		}
 		 	break;
 		 	}
-		 case ':':
-		 	if ( optopt == 'o')
-		 		fprintf(stderr, "Option '%c' requires an argument.\n", optopt);
-		 	else if (optopt == 'O')
-		 		fprintf(stderr, "Option '%c' requires an argument.\n", optopt);		
-		 	else 
-		 		{
-		 		fprintf (stderr, "Unknown option '-%c'.\n", optopt);
-		 		usage();	
-		 		}
+		case '?': 
+			{
+			 fprintf(stderr, "ERROR: option -%c is undefined\n", optopt);
 		 	 return EXIT_FAILURE;
+		 	 break;
+		 	 }
+		case ':': 
+			{
+			fprintf(stderr, "ERROR: option -%c requires an argument\n",optopt);
+			return EXIT_FAILURE;
+		 	break;
+		 	}
 		default : 
 			return EXIT_FAILURE;
 		
 		 }
-	 }
+
+
+	 } // si ./ countalign aljsd 
 
 	
 	
@@ -132,8 +137,14 @@ int main(int argc, char** argv)
         		fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
         		return EXIT_FAILURE;
 		}
-	
+	DEBUG;
 	header = sam_hdr_read(fp);
+	/* ici aller voir les sources de header, recuperer les noms des échantillons, si pas d'échantillons, mettre echantillon par default "SAMPLE" */
+	//chercher sam_header.c ; sam_header_line_parse ; 
+
+	sam_header_parse2(header);
+	
+	
 	
 		if( header == NULL)
 		{
@@ -178,7 +189,24 @@ int main(int argc, char** argv)
  	file=fopen(output_report,"w"); 
  		if ( file != NULL) 
  		{
-      			fprintf(file,"Total number of reads : %lu \nNumber of unmapped reads : %lu \n", nReads, UnMap);
+ 		/* a la fin, faire un rapport PAR SAMPLE 
+ 		
+ 		faudra utiliser 
+ 		* malloc (nbre echantillons)
+ 		* bsearch recherche par dichotnomy)q
+ 		* une structure de données
+ 		int truc = 4;
+ 		char *sample_name = (char*) malloc(sizeof(char)*(truc+1));
+ 		char *sample_name = (char*) calloc(truc+1, sizeof(char));
+ 		free(sample_name);
+ 		struct sample_count
+ 			{
+ 			char* sample_name;
+ 			long UnMap;
+ 			};
+ 		
+ 		*/
+      			fprintf(file,"%lu \n",UnMap);
       		} else 
       			{
       	 		fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
