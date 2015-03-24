@@ -61,11 +61,34 @@ printf(" Version : v.1 \n");
 
 
 
+typedef struct sample_count
+ 	{
+ 	char* sample_name;
+ 	char* rgId;
+ 	long UnMap;
+ 	struct sample_count *next;
+ 	}SAMPLE;
+ 	
+
+SAMPLE* Alloue()
+{
+	SAMPLE *sample=(SAMPLE*)malloc(sizeof(SAMPLE));
+	if(sample==NULL)
+		printf("error\n") ;
+	else {
+		sample -> sample_name =NULL;
+		sample -> rgId=NULL;
+		sample -> UnMap=NULL;
+		sample -> next=NULL;
+	}				
+	return sample; 		
+}
+
+
+
 
 int main(int argc, char** argv)
 	{
-
-	FILE* input_file=NULL;
 	FILE* file=NULL;	
 	char* filename_out =NULL; 
 	int c;
@@ -130,7 +153,7 @@ int main(int argc, char** argv)
 
 	
 	
-	samFile *fp = sam_open((input_file? input_file : "-")); 
+	samFile *fp = sam_open( "-" ); 
 	
 		if (fp == NULL) 
 		{
@@ -161,14 +184,70 @@ int main(int argc, char** argv)
 			return EXIT_FAILURE;
 		} 
 
+DEBUG;
+	int count_samples=0;
+	int count_Id=0;
+	int n=0, i=0;
+	int lenSM=0, j=0;
+	char *SM =NULL;
+	SAMPLE *sample=NULL;
 
 
-	
-	sam_header_parse2(header->text);
+	/* premier passage n=0; on compte les samples
+	   2eme passage n=0; on met les sample en memoire */
+	for(n=0;n<2;++n)
+		{
+		char *rgId=NULL, *sampleName=NULL;
+		void *iter = sam_header_parse2(header->text);
+		while ( (iter = sam_header2key_val(iter, "RG","ID","SM",&rgId,&sampleName) )!=NULL)
+			{
+			if( n==0)
+				{
+				count_samples++;
+				count_Id++;
+				}
+			else
+				{
+				
+				SAMPLE *sample=(SAMPLE*)malloc(sizeof(SAMPLE));
+				if(sample==NULL)
+				printf("error\n") ;
+				else {
+					sample -> sample_name =NULL;
+					sample -> rgId=NULL;
+					sample -> UnMap=NULL;
+					sample -> next=NULL;
+					}
+				
+				for (j=0 ; j <lenSM; j++) 
+					{ 
+					SM[j]=sampleName[j];
+					}
+
+				fprintf(stderr,"SampleName: %s\n", SM);
+					DEBUG;
+				sample -> sample_name = SM;
+					DEBUG;				
+				}
+				
+				
+			fprintf(stderr,"ID:: %s\tSM:%s\n", rgId,sampleName);
+			}
+		if(n==0)
+			{
+			fprintf(stderr, "%d %d\n", count_samples, count_Id);
+			/*lenSM=strlen(sampleName);
+			SM=(char*)malloc(lenSM*sizeof(char));*/
+			
+			Alloue();
+			}
+
+		}
 
 
 
 
+DEBUG;
 	samfile_t *temp_bam = samopen("temp.bam", "wb", header );
 	
 		if (temp_bam == NULL) 
@@ -206,12 +285,7 @@ int main(int argc, char** argv)
  		char *sample_name = (char*) malloc(sizeof(char)*(taille+1));
  		char *sample_name = (char*) calloc(truc+1, sizeof(char));
  		free(sample_name);
- 		struct sample_count
- 			{
- 			char* sample_name;
- 			long UnMap;
- 			};
- 		
+
  		*/
       			fprintf(file,"%lu \n",UnMap);
       		} else 
