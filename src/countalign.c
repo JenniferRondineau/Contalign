@@ -142,9 +142,6 @@ int main(int argc, char** argv)
 	/* ici aller voir les sources de header, recuperer les noms des échantillons, si pas d'échantillons, mettre echantillon par default "SAMPLE" */
 	//chercher sam_header.c ; sam_header_line_parse ; 
 
-	sam_header_parse2(header);
-	
-	
 	
 		if( header == NULL)
 		{
@@ -153,6 +150,9 @@ int main(int argc, char** argv)
 		}
 
 
+	
+	DEBUG;
+
 	samfile_t *out_file = samopen((filename_out!=NULL? filename_out : "-"), "wb", header ); 
 	
 		if (out_file == NULL) 
@@ -160,6 +160,13 @@ int main(int argc, char** argv)
 			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
 			return EXIT_FAILURE;
 		} 
+
+
+
+	
+	sam_header_parse2(header->text);
+
+
 
 
 	samfile_t *temp_bam = samopen("temp.bam", "wb", header );
@@ -195,8 +202,8 @@ int main(int argc, char** argv)
  		* malloc (nbre echantillons)
  		* bsearch recherche par dichotnomy)q
  		* une structure de données
- 		int truc = 4;
- 		char *sample_name = (char*) malloc(sizeof(char)*(truc+1));
+ 	
+ 		char *sample_name = (char*) malloc(sizeof(char)*(taille+1));
  		char *sample_name = (char*) calloc(truc+1, sizeof(char));
  		free(sample_name);
  		struct sample_count
@@ -213,7 +220,7 @@ int main(int argc, char** argv)
       	 		return EXIT_FAILURE;
       	 		}     	 		
       	 		
-      	 		
+      	DEBUG;	 		
         fclose(file);
 	bam_destroy1(b);
 	sam_close(fp); 
