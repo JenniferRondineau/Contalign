@@ -1,0 +1,64 @@
+\documentclass[a4paper,french,10pt]{memoir}
+\usepackage[utf8]{inputenc} % encodage
+\usepackage[french]{babel} % pour le francais
+\usepackage{color,xcolor,listings} % utile pour les bouts de code insérés
+\usepackage{hyperref} % pour les liens dans le pdf (sommaire clickable par exemple ;)
+\usepackage{graphicx} % pour les images
+\usepackage{lmodern} % pour les fonts
+\usepackage[babel=true]{csquotes} % csquotes va utiliser la langue définie dans babel pour les quotes francaises
+ 
+ 
+% infos du document
+\title{Rapport de Stage}
+\author{Jennifer Rondineau}
+ 
+\begin{document}
+ 
+\input{pageDeGarde.tex} % page de garde
+\frontmatter % introduction
+\chapter{Introduction}
+\paragraph{}
+
+ 
+\clearpage % mettre le sommaire sur une nouvelle page
+\setcounter{tocdepth}{1} % définir la profondeur de l'Index, 1 == Partie + Sous Parties
+\renewcommand{\contentsname}{Sommaire} % renommer la "Tables des matières" en "Sommaire"
+\tableofcontents{} % afficher l'index
+% penser a caler les parties dans differents fichiers ;)
+ 
+\mainmatter % partie principale du document
+\chapter{1\iere ~partie}
+\section{Prem's}
+\paragraph{}
+...
+\section{Sous Partie LoL}
+\paragraph{}
+...
+\paragraph{}
+...
+ 
+ 
+\chapter{2\ieme ~partie}
+\section{Sous Partie 1}
+\paragraph{}
+...
+\paragraph{}
+...
+\section{Sous Partie 2}
+\paragraph{}
+...
+\paragraph{}
+Le \LaTeX c'est trop puissant !
+\paragraph{}
+...
+\paragraph{}
+...
+ 
+ 
+\backmatter % fin
+\chapter{Conclusion}
+\paragraph{}
+Blablabla ...
+\listoffigures % index des illustrations
+\appendix % annexes
+\end{document} 

@@ -32,9 +32,20 @@ THE SOFTWARE.
 #include "debug.h"
 #include <errno.h>  
 
+
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
-
+typedef struct SampleName
+ 	{
+ 	char* sample_name; /* must be unique */
+ 	long unMap;
+ 	}Sample;
+ 	
+typedef struct Group
+ 	{
+ 	char* rgId;/* must be unique */
+ 	Sample* sample;
+ 	}Group;
 
 
 static void usage ()
@@ -45,7 +56,7 @@ fprintf(stderr,
 \n\
 Description : \n\
 \n\
-This program reads BAM file and looks for unmapped reads. It released a report containing the total number of reads and the number of unmapped reads. \n\
+This program reads BAM file and looks for unmapped reads. It released a report containing the total number of reads and the number of unmapped reads by sample. \n\
 \n\
 Options :\n\
 \n\
@@ -67,23 +78,13 @@ printf(" Version : v.1 \n");
 
 
 
-typedef struct SampleName
- 	{
- 	char* sample_name; /* must be unique */
- 	long unMap;
- 	}Sample;
- 	
-typedef struct Group
- 	{
- 	char* rgId;/* must be unique */
- 	Sample* sample;
- 	}Group;
 
-static int compareSample(const void *s1, const void *s2)
+
+static int compareGroup(const void *g1, const void *g2)
 {
-	Sample *sample1 = (Sample *) s1;
-	Sample *sample2 = (Sample *) s2;
-	return strcmp (sample1->sample_name, sample2->sample_name);
+	Group *group1 = (Group *) g1;
+	Group *group2 = (Group *) g2;
+	return strcmp (group1->rgId, group2->rgId);
 }
 
 
@@ -99,21 +100,14 @@ int main(int argc, char** argv)
 	bam1_t *b = NULL;
 	b = bam_init1();
 	long nReads=0;
-	long UnMap=0;
-	int n=0, i=0, j=0, len=0;
-	char *nameResearch=NULL; 
-	char *rgId=NULL, *sampleName=NULL;
-	
+	int n=0, i=0;
+	char *rgId=NULL, *sampleName=NULL;	
 	Sample* samples=NULL;
 	int sample_count=0;
 	Group* group=NULL;
 	int group_count=0;
-
-	char *verifuniq_sample=NULL; 
-	int uniq_sample = 0;
-
-	char *verifuniq_group=NULL; 
-	int uniq_group = 0;
+	uint8_t *search = NULL; 
+	char* Groupsearch = NULL;
 
 	
 	// get commande line options
@@ -156,15 +150,14 @@ int main(int argc, char** argv)
 			return EXIT_FAILURE;
 		 	break;
 		 	}
-		default : 
+		default :
+			{
+			usage(); 
 			return EXIT_FAILURE;
-		
+			break;
+			}
 		 }
 	
-		if (argv[1] == NULL)
-		{
-			return EXIT_FAILURE;
-			}
 
 	 } // si ./ countalign aljsd 
 
@@ -173,157 +166,147 @@ int main(int argc, char** argv)
 	samFile *fp = sam_open( "-" ); 
 	
 		if (fp == NULL) 
-		{
+			{
         		fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
         		return EXIT_FAILURE;
-		}
-	DEBUG;
+			}
+
 	header = sam_hdr_read(fp);
 
-	
 		if( header == NULL)
-		{
+			{
 			fprintf(stderr, "Cannot read header \n");
 			return EXIT_FAILURE;
-		}
+			}
 
-
-	
-	DEBUG;
 
 	samfile_t *out_file = samopen((filename_out!=NULL? filename_out : "-"), "wb", header ); 
 	
 		if (out_file == NULL) 
-		{
+			{
 			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
 			return EXIT_FAILURE;
-		} 
-
-DEBUG;
-	
+			} 
 
 
-		void *iter = sam_header_parse2(header->text);
-		while ( (iter = sam_header2key_val(iter, "RG","ID","SM",&rgId,&sampleName) )!=NULL)
-			{
+
+	void *iter = sam_header_parse2(header->text);
+	while ( (iter = sam_header2key_val(iter, "RG","ID","SM",&rgId,&sampleName) )!=NULL)
+		{
+			Sample* searchSample = NULL;
 			
-				 /* sample must be unique */
-				verifuniq_sample = strdup(sampleName);
-				
-				for (i=0;i<sample_count;++i)
-					{ 
-					if (strcmp (samples[i].sample_name, verifuniq_sample) == 0)
-						{
-						uniq_sample=1;
-						}
+			/* sample must be unique */
+			
+			for (i=0;i<sample_count;++i)
+				{ 
+				if (strcmp (samples[i].sample_name, sampleName) == 0)
+					{
+					searchSample = &samples[i];
+					break;
 					}
+				}
 				
-				if (uniq_sample == 0 ) 
+			if (searchSample == NULL ) 
 				{ 					
-					samples = realloc(samples,sizeof(Sample)*(n+1));
-					VERIFY_NOT_NULL(samples);
-					samples[sample_count].sample_name = strdup(sampleName);
-					VERIFY_NOT_NULL(samples[sample_count].sample_name);
-					sample_count++;
+				samples = (Sample*)realloc(samples,sizeof(Sample)*(sample_count+1));
+				VERIFY_NOT_NULL(samples);
+				samples[sample_count].sample_name = strdup(sampleName);
+				VERIFY_NOT_NULL(samples[sample_count].sample_name);
+				samples[sample_count].unMap=0;
+				
+				searchSample=&samples[sample_count];
+				
+				sample_count++;
 				}
 
-
-				 /* group must be unique */			
-				verifuniq_group = strdup(rgId);
-				
-				for (i=0;i<group_count;++i)
-					{ 
-					if (strcmp (group[i].rgId, verifuniq_group) == 0)
-						{
-						uniq_group=1;
-						}
-					}
-					
-				if (uniq_group == 0 ) 
-				{ 					
-					group = realloc(group,sizeof(Group)*(n+1));	
-					VERIFY_NOT_NULL(group);	
-					group[group_count].rgId = strdup(rgId);
-					VERIFY_NOT_NULL(group[group_count].rgId);
-					group_count++;
+			 /* group must be unique */							
+			
+			for (i=0;i<group_count;++i)
+			{ 
+				if (strcmp (group[i].rgId,rgId) == 0)
+				{
+				fprintf(stderr,"DUP GROUP");
+				return EXIT_FAILURE;
 				}
-
-
-				DEBUG;				
-				
-				
 			}
+					
+								
+			group = realloc(group,sizeof(Group)*(group_count+1));	
+			VERIFY_NOT_NULL(group);	
+			group[group_count].rgId = strdup(rgId);
+			VERIFY_NOT_NULL(group[group_count].rgId);
+			
+			group[group_count].sample = searchSample;  
+			group_count++;							
+			
+
+			
+		}
 		
 
-//qsort(&firstSample, count_samples, sizeof(Sample), compareSample);
+	if ((group_count == 0)  && (sample_count ==0))
+		{
+		fprintf(stderr,"Error, missing SAM header or @RG tag\n");
+		return EXIT_FAILURE;
+		}
 
 
+	qsort( group, group_count, sizeof(Group), compareGroup);
 
 
-DEBUG;
 	samfile_t *temp_bam = samopen("temp.bam", "wb", header );
 	
 		if (temp_bam == NULL) 
-		{
+			{
 			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
 			return EXIT_FAILURE;
-		} 
+			} 
 
-DEBUG;
-
+	
+	DEBUG;
 	while(sam_read1(fp, header, b) >= 0)
 	{ 
 		nReads++;
 		if ( (b->core.flag & BAM_FUNMAP ) )
 			{
-			nameResearch = strdup(bam_get_qname(b));
-			i=0;
-			for (i=0; i < group_count ; i++) 
-			{
-				len=strlen(group[i].rgId);
-									
-				if(strncmp ( group[i].rgId, nameResearch, len) == 0)
+				
+			search = bam_aux_get(b, "RG");
+			Groupsearch = bam_aux2Z(search);
+			
+			struct Group key, *res;
+			key.rgId = Groupsearch;
+			res = bsearch(&Groupsearch, group, group_count, sizeof(Group), compareGroup);
+			if (res == NULL)
 				{
-					fprintf(stderr,"yehhhhh %s \n ", group[i].rgId);				
+				fprintf(stderr, "%s unknown read group\n", Groupsearch);
+				return EXIT_FAILURE;
 				}
-			}
-			//comparer avec ceux dans la structure
-			UnMap++;
-			//samwrite(temp_bam, b); 	
+			else 
+				{
+				res->sample->unMap++;
+				}
+				
+			samwrite(temp_bam, b); 	
 			}
 		samwrite(out_file, b); 
-  
 	}
 	
-fprintf(stderr,"le nom recherché %s\n",nameResearch);
-
-
-	 	/* a la fin, faire un rapport PAR SAMPLE 
- 		
- 		faudra utiliser 
- 		* malloc (nbre echantillons)
- 		* bsearch recherche par dichotnomy)q
- 		* une structure de données
- 	
- 		char *sample_name = (char*) malloc(sizeof(char)*(taille+1));
- 		char *sample_name = (char*) calloc(truc+1, sizeof(char));
- 		free(sample_name);
-
- 		*/
 	
+
  	file=fopen(output_report,"w"); 
  		if ( file != NULL) 
  		{
- 		/*for(i=0;i< sample_count;++i)
+ 		for(i=0;i< sample_count;++i)
  			{
-      			fprintf(file,"%s\t%lu \n",samples[i].name,samples[i].UnMap);
-      			}*/
-      			fprintf(file,"%d\n",UnMap);
+      			fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
+      			}
+      		
       		} else 
       			{
-      	 		fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
-      	 		return EXIT_FAILURE;
+	      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
+	      	 	return EXIT_FAILURE;
       	 		}     	 		
+      	 		
       	 		
       	DEBUG;	 		
         fclose(file);
@@ -333,11 +316,21 @@ fprintf(stderr,"le nom recherché %s\n",nameResearch);
 	samclose(temp_bam);
 	free(filename_out);
 
-	//cleanup
-	//pour tous samples: free(name)
-	free(samples);
-	//pour tous gpourps: free(name)
+
+	
+	for (i=0; i<group_count; i++)
+		{
+		free(group[i].rgId);
+		}
 	free(group);
+
+	
+	for (i=0; i<sample_count; i++)
+		{
+		free(samples[i].sample_name);
+		}
+	free(samples);
+	
 
 	
         return EXIT_SUCCESS;

@@ -42,4 +42,4 @@ clean:
 
 
 	
-
+# LD_LIBRARY_PATH=../../packages/samtools/htslib ./countalign
