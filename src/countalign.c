@@ -35,14 +35,23 @@ THE SOFTWARE.
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
 
+typedef struct Fastq
+	{
+	char* qname;
+	uint8_t *seq;
+	uint8_t *qual;
+	}Fastq;
+
 typedef struct SampleName
  	{
  	char* sample_name; /* must be unique */
  	long unMap;
+ 	Fastq* fastq;
  	}Sample;
  	
 typedef struct Group
  	{
+ 	long unMap;
  	char* rgId;/* must be unique */
  	Sample* sample;
  	}Group;
@@ -93,9 +102,7 @@ int main(int argc, char** argv)
 	{
 	FILE* file=NULL;
 	FILE* file_fastq=NULL;
-	char* filename_out =NULL; 
 	int c, i=0, sample_count=0, group_count=0, case_o =0;
-	char* output_report; 
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
@@ -103,14 +110,9 @@ int main(int argc, char** argv)
 	const char *rgId=NULL, *sampleName=NULL;	
 	Sample* samples=NULL;
 	Group* group=NULL;
-	uint8_t *search = NULL; 
-	char* Groupsearch = NULL;
-	uint8_t* seq= NULL;
-        uint8_t* qual = NULL;
-	char *qname = NULL;
-	char *nbRead = NULL;
-	int8_t *buf = NULL;
-	int8_t *buf2 = NULL;
+	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
+	char *qname = NULL, *nbRead = NULL, *output_report, *filename_out =NULL; 
+	int8_t *buf = NULL, *buf2 = NULL;
 	int32_t qlen =NULL;
 
 	
@@ -262,66 +264,87 @@ int main(int argc, char** argv)
 	
 	qsort( group, group_count, sizeof(Group), compareGroup);
 	
-	file_fastq=fopen("temp.fastq","a");
+	file_fastq=fopen("temp.fastq","w");
 	
 	while(sam_read1(fp, header, b) >= 0)
 	{ 
 		nReads++;
 		if ( (b->core.flag & BAM_FUNMAP ) )
 			{
-			//Write read name	
+			Group key;
 			search = bam_aux_get(b, "RG");
-			Groupsearch = bam_aux2Z(search); 
+			if (search == NULL) {
+				fprintf(stderr, "Error, missing @RG tag\n");
+				return EXIT_FAILURE;
+			}else key.rgId = bam_aux2Z(search); 
 			
 			struct Group *res;
-			res = bsearch(&Groupsearch, group, group_count, sizeof(Group), compareGroup);
+			res = bsearch(
+				&key,
+				group,
+				group_count,
+				sizeof(Group),
+				compareGroup
+				);
 			if (res == NULL) {
-				fprintf(stderr, "%s unknown read group\n", Groupsearch);
 				return EXIT_FAILURE;
 			} else 
 				{
 				res->sample->unMap++; // Count unmapped reads by sample
 				}
 			
+		
 			// Write sequence
-			qlen = b->core.l_qseq;	
-       			buf=(int8_t*)malloc(qlen*sizeof(int8_t));       			
-       			for (i = 0; i < qlen; ++i) buf[i] = 0;
+			qlen = (b->core.l_qseq);
+			if (qlen == NULL) {
+				fprintf(stderr, "Error, missing sequence or quality\n");
+				return EXIT_FAILURE;
+			}
+       			buf=calloc((qlen+1),sizeof(int8_t));       			
+       			buf[qlen] = '\0';
        			seq = bam_get_seq(b);
         		for (i = 0; i < qlen; ++i){
            			buf[i] = bam_seqi(seq, i);
            			buf[i] = seq_nt16_str[buf[i]];
            			}
-           		buf[qlen] = '\0';
-
-			// Write sequence name
-			qname = strdup(bam_get_qname(b));
 			
+
+			// Write read name
+			qname = strdup(bam_get_qname(b));
+			if (qname == NULL) {
+				fprintf(stderr, "Error, missing read name\n");
+				return EXIT_FAILURE;
+			}
 			if ((b->core.flag & BAM_FREAD1) && !(b->core.flag & BAM_FREAD2)) nbRead="/1";
          		else if ((b->core.flag & BAM_FREAD2) && !(b->core.flag & BAM_FREAD1)) nbRead="/2";
            		
            		
            		// Write quality	
            		qual = bam_get_qual(b);	
-           		buf2=(int8_t*)malloc(qlen*sizeof(int8_t));       			
-       			for (i = 0; i < qlen; ++i) buf2[i] = 0;
+           		buf2=calloc((qlen+1),sizeof(int8_t));       			
+       			buf2[qlen] = '\0';
        			for (i = 0; i < qlen; ++i) buf2[i] = 33 + qual[i];
-       			buf2[qlen] = '\0';		
+
 			
-			// Write fastq with unmapped reads
+			// Write fastq 
 			if ( file_fastq != NULL) {
- 				fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", qname, nbRead, (char*)buf, (char*)buf2);
+ 				fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", qname, nbRead, buf, buf2);
  			} else 
  				{
  				fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
  				return EXIT_FAILURE;
  				}
+ 			free(buf);
+			free(buf2); 	
 			
-
+			//des que plus de 1000 fastq / echantillon
+			//ecrire dans le ficher, liberer les fastq
+			
 			}
 		samwrite(out_file, b); // Write read in the output file
 	}
-	
+	//pour chaque échantillon, écrire les fastq restant
+
 	
 	// Write the report containing number of unmapped reads by sample
  	file=fopen(output_report,"w"); 
@@ -337,10 +360,8 @@ int main(int argc, char** argv)
 	      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
 	      	 	return EXIT_FAILURE;
       	 		}     	 		
-      	 		
-      	
-      	 		
-      	DEBUG;	
+
+
         
         // Close files, free and return
         fclose(file);
@@ -348,9 +369,8 @@ int main(int argc, char** argv)
 	sam_close(fp);
 	samclose(out_file);
 	free(filename_out);
-	free(file_fastq);
-	free(buf);
-	free(buf2);
+	fclose(file_fastq);
+
 	
 	for (i=0; i<group_count; i++)
 		{
