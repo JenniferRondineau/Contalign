@@ -8,14 +8,15 @@ CC=gcc
 PACKAGES=../../packages
 samtools.dir=${PACKAGES}/samtools
 htslib.dir=${samtools.dir}/htslib
-CFLAGS= -Wall -g -I ${samtools.dir}
-LDFLAGS=-L ${samtools.dir} -L ${htslib.dir} 
-sam.libs= -lbam -lhts
+bwa.dir=${PACKAGES}/bwa
+CFLAGS= -Wall -g -I ${samtools.dir} -I ${bwa.dir}
+LDFLAGS=-L ${samtools.dir} -L ${htslib.dir} -L ${bwa.dir}
+sam.libs= -lbam -lhts -lbwa
 
 all: countalign test20150317 test
 
 test: countalign.txt
-	@echo -n "Nombre de Read dans ${sample.bam} : "
+	@echo -n "Nombre de Reads dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -c ${sample.bam}
 	@echo -n "Nombre de Reads dans test.bam : "
 	@${PACKAGES}/samtools/samtools view -c test.bam

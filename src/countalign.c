@@ -30,17 +30,35 @@ THE SOFTWARE.
 #include "sam.h"
 #include "sam_header.h"
 #include "debug.h"
-#include <errno.h>  
+#include <errno.h>
+#include "bwa.c"
+#include "kseq.h" 
 
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
+#define DUMP_FASTQ if ( file_fastq != NULL) {\
+					for (i=0; i < fastq_count; i++)\
+						{\
+	 					fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
+	 					free(fastq[i].qname);\
+	 					free(fastq[i].seq);\
+	 					free(fastq[i].qual);\
+	 					}\
+	 			} else \
+	 				{\
+	 				fprintf(stderr,"Cannot read fasta file. %s.\n",strerror(errno));\
+	 				return EXIT_FAILURE;\
+	 				}\
+	 			fastq_count=0
 
 typedef struct Fastq
 	{
 	char* qname;
-	uint8_t *seq;
-	uint8_t *qual;
+	char* read;
+	char* seq;
+	char* qual;
 	}Fastq;
+
 
 typedef struct SampleName
  	{
@@ -55,6 +73,8 @@ typedef struct Group
  	char* rgId;/* must be unique */
  	Sample* sample;
  	}Group;
+
+
 
 
 static void usage ()
@@ -102,7 +122,7 @@ int main(int argc, char** argv)
 	{
 	FILE* file=NULL;
 	FILE* file_fastq=NULL;
-	int c, i=0, sample_count=0, group_count=0, case_o =0;
+	int c, i=0, sample_count=0, group_count=0, case_o=0, fastq_count=0;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
@@ -110,11 +130,12 @@ int main(int argc, char** argv)
 	const char *rgId=NULL, *sampleName=NULL;	
 	Sample* samples=NULL;
 	Group* group=NULL;
+	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
-	char *qname = NULL, *nbRead = NULL, *output_report, *filename_out =NULL; 
-	int8_t *buf = NULL, *buf2 = NULL;
+	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL; 
+	int8_t *buf = NULL;
 	int32_t qlen =NULL;
-
+	//bwaidx_t *idx;
 	
 	// get commande line options
 	 while ((c = getopt(argc, argv,"o:O:hv")) != -1) {
@@ -243,7 +264,7 @@ int main(int argc, char** argv)
 				}
 			}
 										
-			group = realloc(group,sizeof(Group)*(group_count+1));	
+			group = (Group*)realloc(group,sizeof(Group)*(group_count+1));	
 			VERIFY_NOT_NULL(group);	
 			group[group_count].rgId = strdup(rgId);
 			VERIFY_NOT_NULL(group[group_count].rgId);
@@ -260,12 +281,12 @@ int main(int argc, char** argv)
 		}
 
 
-	DEBUG;
-	
 	qsort( group, group_count, sizeof(Group), compareGroup);
 	
-	file_fastq=fopen("temp.fastq","w");
-	
+
+	file_fastq=fopen("temp.fastq","w+");
+
+
 	while(sam_read1(fp, header, b) >= 0)
 	{ 
 		nReads++;
@@ -292,12 +313,15 @@ int main(int argc, char** argv)
 				{
 				res->sample->unMap++; // Count unmapped reads by sample
 				}
+						
+			fastq = (Fastq*)realloc(fastq,sizeof(Fastq)*(fastq_count+1));	
+			VERIFY_NOT_NULL(fastq);	
 			
-		
+
 			// Write sequence
 			qlen = (b->core.l_qseq);
-			if (qlen == NULL) {
-				fprintf(stderr, "Error, missing sequence or quality\n");
+			if (qlen == 0) {
+				fprintf(stderr, "Error, missing sequence\n");
 				return EXIT_FAILURE;
 			}
        			buf=calloc((qlen+1),sizeof(int8_t));       			
@@ -307,6 +331,9 @@ int main(int argc, char** argv)
            			buf[i] = bam_seqi(seq, i);
            			buf[i] = seq_nt16_str[buf[i]];
            			}
+
+			fastq[fastq_count].seq = strdup((char*)buf);
+			VERIFY_NOT_NULL(fastq[fastq_count].seq);
 			
 
 			// Write read name
@@ -315,37 +342,55 @@ int main(int argc, char** argv)
 				fprintf(stderr, "Error, missing read name\n");
 				return EXIT_FAILURE;
 			}
-			if ((b->core.flag & BAM_FREAD1) && !(b->core.flag & BAM_FREAD2)) nbRead="/1";
-         		else if ((b->core.flag & BAM_FREAD2) && !(b->core.flag & BAM_FREAD1)) nbRead="/2";
+			if ((b->core.flag & BAM_FREAD1) && !(b->core.flag & BAM_FREAD2)) read="/1";
+         		else if ((b->core.flag & BAM_FREAD2) && !(b->core.flag & BAM_FREAD1)) read="/2";
            		
+           		fastq[fastq_count].qname = qname;
+           		VERIFY_NOT_NULL(fastq[fastq_count].qname);
+           		           		
+           		fastq[fastq_count].read = read;
+           		VERIFY_NOT_NULL(fastq[fastq_count].read);
+           		           		
            		
            		// Write quality	
            		qual = bam_get_qual(b);	
-           		buf2=calloc((qlen+1),sizeof(int8_t));       			
-       			buf2[qlen] = '\0';
-       			for (i = 0; i < qlen; ++i) buf2[i] = 33 + qual[i];
+           		if (qual == NULL) {
+				fprintf(stderr, "Error, missing quality\n");
+				return EXIT_FAILURE;
+			}
+           		buf=calloc((qlen+1),sizeof(int8_t));       			
+       			buf[qlen] = '\0';
+       			for (i = 0; i < qlen; ++i) buf[i] = 33 + qual[i];
 
+
+           		fastq[fastq_count].qual = strdup((char*)buf);
+           		VERIFY_NOT_NULL(fastq[fastq_count].qual);
+           		
+			res->sample->fastq = fastq;
 			
-			// Write fastq 
-			if ( file_fastq != NULL) {
- 				fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", qname, nbRead, buf, buf2);
- 			} else 
- 				{
- 				fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
- 				return EXIT_FAILURE;
- 				}
- 			free(buf);
-			free(buf2); 	
+			free(buf);
+			fastq_count++;	
 			
-			//des que plus de 1000 fastq / echantillon
-			//ecrire dans le ficher, liberer les fastq
-			
+			if(fastq_count == 1000)  // Write fastq 
+				{
+				DUMP_FASTQ;
+				}			
 			}
 		samwrite(out_file, b); // Write read in the output file
 	}
-	//pour chaque échantillon, écrire les fastq restant
+	
 
 	
+	if (fastq_count != 0)
+		{
+		DUMP_FASTQ; 	  		 			
+	 	}
+	
+	//idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
+
+
+
+
 	// Write the report containing number of unmapped reads by sample
  	file=fopen(output_report,"w"); 
  		if ( file != NULL) 
@@ -354,13 +399,13 @@ int main(int argc, char** argv)
  			{
       			fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
       			}
-      		
+
       		} else 
       			{
 	      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
 	      	 	return EXIT_FAILURE;
       	 		}     	 		
-
+ 	
 
         
         // Close files, free and return
@@ -370,7 +415,6 @@ int main(int argc, char** argv)
 	samclose(out_file);
 	free(filename_out);
 	fclose(file_fastq);
-
 	
 	for (i=0; i<group_count; i++)
 		{
@@ -378,21 +422,15 @@ int main(int argc, char** argv)
 		}
 	free(group);
 
-
 	
 	for (i=0; i<sample_count; i++)
 		{
 		free(samples[i].sample_name);
 		}
 	free(samples);
-	
-	
 
 	
-        return EXIT_SUCCESS;
-        }
+return EXIT_SUCCESS;
+}
         
-        
-        
-        // le fichier .fastq va pouvoir servir pour faire les alignements avec les réferences des contaminants.
         
