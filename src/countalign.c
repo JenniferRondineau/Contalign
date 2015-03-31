@@ -36,21 +36,34 @@ THE SOFTWARE.
 #include "bwamem.h"
 
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
-
+				
+#define ALIGN_CONTAMINANTS int len, n; opt = mem_opt_init(); \
+				for(n=0; n<fastq_count;n++) {\
+				len= strlen(fastq[n].seq);\
+				mem_alnreg_v ar;\
+				int i;\
+				ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);\
+				for (i = 0; i < ar.n; ++i) {\
+					mem_aln_t a;\
+					if (ar.a[i].secondary >= 0) continue; \
+					a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); \
+					fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t\n", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);}\
+				free(fastq[n].qname);\
+				free(fastq[n].seq);\
+				free(fastq[n].qual);\
+				free(ar.a);\
+				}
+				
 #define DUMP_FASTQ if ( file_fastq != NULL) {\
-					for (i=0; i < fastq_count; i++)\
-						{\
-	 					fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
-	 					free(fastq[i].qname);\
-	 					free(fastq[i].seq);\
-	 					free(fastq[i].qual);\
-	 					}\
-	 			} else \
-	 				{\
-	 				fprintf(stderr,"Cannot read fasta file. %s.\n",strerror(errno));\
-	 				return EXIT_FAILURE;\
-	 				}\
-	 			fastq_count=0
+		   for (i=0; i < fastq_count; i++)\
+			{\
+			fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
+			}\
+		   } else \
+			{\
+			fprintf(stderr,"Unsaved fasta file.\n");\
+		   }
+
 
 typedef struct Fastq
 	{
@@ -94,6 +107,8 @@ Options :\n\
 \n\
          -O \033[4mFILE\033[0m   Name of the output BAM file.\n\
 \n\
+	 -s \033[4mFILE\033[0m   Save FASTQ file.\n\
+\n\
          -h        Output help and exit immediately. \n\
 \n\
          -v        Output version and exit immediately. \n\n");
@@ -133,16 +148,15 @@ int main(int argc, char** argv)
 	Group* group=NULL;
 	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
-	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL; 
+	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL;
+	const char *filename_fastq = NULL; 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
 	bwaidx_t *idx;
-	gzFile fq;
-	kseq_t *ks;
 	mem_opt_t *opt;
 	
 	// get commande line options
-	 while ((c = getopt(argc, argv,"o:O:hv")) != -1) {
+	 while ((c = getopt(argc, argv,"o:O:hvs:")) != -1) {
 		 switch(c)
 			 {
 			 case 'h': 
@@ -162,6 +176,16 @@ int main(int argc, char** argv)
 			 	{
 			 	output_report = strdup(optarg); 
 			 	case_o = 1;
+			 	break;
+			 	}
+			  case 's': 
+			 	{
+			 	filename_fastq = strdup(optarg);
+			 	if( filename_fastq == NULL )
+			 		{
+			 		fprintf(stderr,"Cannot alloc memory.\n");
+			 		return EXIT_FAILURE;
+			 		}
 			 	break;
 			 	}
 			 case 'O' :
@@ -201,8 +225,18 @@ int main(int argc, char** argv)
 			}	
 
 	 }
-
 	
+	
+	if (filename_fastq != NULL) 
+			{
+			file_fastq=fopen(filename_fastq,"w+");
+			if ( file_fastq == NULL) 
+ 				{
+		      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
+		      	 	return EXIT_FAILURE;
+	      	 		}     	 	
+			}		
+			
 	
 	samFile *fp = sam_open( "-" ); 
 	
@@ -229,12 +263,6 @@ int main(int argc, char** argv)
 			return EXIT_FAILURE;
 			} 
 		
-		
-	idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
-		if (NULL == idx) {
-			fprintf(stderr, "Index load failed %s.\n",strerror(errno));
-			exit(EXIT_FAILURE);
-		}
 			
 
 	void *iter = sam_header_parse2(header->text);
@@ -293,9 +321,15 @@ int main(int argc, char** argv)
 
 
 	qsort( group, group_count, sizeof(Group), compareGroup);
-	
 
-	file_fastq=fopen("temp.fastq","w+");
+
+	idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
+		if (NULL == idx) {
+			fprintf(stderr, "Index load failed %s.\n",strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		
+
 
 
 	while(sam_read1(fp, header, b) >= 0)
@@ -385,46 +419,16 @@ int main(int argc, char** argv)
 			if(fastq_count == 1000)  // Write fastq 
 				{
 				DUMP_FASTQ;
-				}			
+				ALIGN_CONTAMINANTS;
+				fastq_count=0;
+				}		
 			}
 		samwrite(out_file, b); // Write read in the output file
 	}
 	
 
-	
-	if (fastq_count != 0)
-		{
-		DUMP_FASTQ; 	  		 			
-	 	}
-	
-	
-	fq = gzopen("temp.fastq", "r");
-		if (NULL == fq) {
-			fprintf(stderr, "Couldn't open fastq file %s.\n",strerror(errno));;
-			exit(EXIT_FAILURE);
-		}
-	
-	ks = kseq_init(fq); // initialize the FASTA/Q parser
-	opt = mem_opt_init(); // initialize the BWA-MEM parameters to the default values
-
-	while (kseq_read(ks) >= 0) { // read one sequence
-			mem_alnreg_v ar;
-			int i, k;
-			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, ks->seq.l, ks->seq.s); // get all the hits
-			for (i = 0; i < ar.n; ++i) { // traverse each hit
-				mem_aln_t a;
-				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
-				a = mem_reg2aln(opt, idx->bns, idx->pac, ks->seq.l, ks->seq.s, &ar.a[i]); // get forward-strand position and CIGAR
-				// print alignment
-				fprintf(stderr,"%s\t%c\t%s\t%ld\t%d\t", ks->name.s, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);
-				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
-					fprintf(stderr,"%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
-				fprintf(stderr,"\t%d\n", a.NM); // print edit distance
-				free(a.cigar); // don't forget to deallocate CIGAR
-			}
-			free(ar.a); // and deallocate the hit list
-		}
-
+	DUMP_FASTQ;
+	ALIGN_CONTAMINANTS;
 
 	// Write the report containing number of unmapped reads by sample
  	file=fopen(output_report,"w"); 
@@ -449,8 +453,8 @@ int main(int argc, char** argv)
 	sam_close(fp);
 	samclose(out_file);
 	free(filename_out);
-	fclose(file_fastq);
-	
+	if (file_fastq != NULL) fclose(file_fastq);
+
 	for (i=0; i<group_count; i++)
 		{
 		free(group[i].rgId);
@@ -465,10 +469,10 @@ int main(int argc, char** argv)
 	free(samples);
 
 	free(opt);
-	kseq_destroy(ks);
-	gzclose(fq);
 	bwa_idx_destroy(idx);
-
+	
+	
+	
 
 	
 return EXIT_SUCCESS;

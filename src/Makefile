@@ -26,7 +26,7 @@ test: countalign.txt
 	@cat $<
 
 countalign.txt : countalign
-	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ > test.bam
+	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ -s sauvergarde.fastq > test.bam
 	
 countalign : countalign.o
 	${CC} -o $@  ${LDFLAGS} $< ${sam.libs}
