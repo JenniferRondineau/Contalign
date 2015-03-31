@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include <errno.h>
 #include "bwa.c"
 #include "kseq.h" 
+#include "bwamem.h"
 
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
@@ -135,7 +136,10 @@ int main(int argc, char** argv)
 	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL; 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
-	//bwaidx_t *idx;
+	bwaidx_t *idx;
+	gzFile fq;
+	kseq_t *ks;
+	mem_opt_t *opt;
 	
 	// get commande line options
 	 while ((c = getopt(argc, argv,"o:O:hv")) != -1) {
@@ -224,6 +228,13 @@ int main(int argc, char** argv)
 			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
 			return EXIT_FAILURE;
 			} 
+		
+		
+	idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
+		if (NULL == idx) {
+			fprintf(stderr, "Index load failed %s.\n",strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 			
 
 	void *iter = sam_header_parse2(header->text);
@@ -386,9 +397,33 @@ int main(int argc, char** argv)
 		DUMP_FASTQ; 	  		 			
 	 	}
 	
-	//idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
+	
+	fq = gzopen("temp.fastq", "r");
+		if (NULL == fq) {
+			fprintf(stderr, "Couldn't open fastq file %s.\n",strerror(errno));;
+			exit(EXIT_FAILURE);
+		}
+	
+	ks = kseq_init(fq); // initialize the FASTA/Q parser
+	opt = mem_opt_init(); // initialize the BWA-MEM parameters to the default values
 
-
+	while (kseq_read(ks) >= 0) { // read one sequence
+			mem_alnreg_v ar;
+			int i, k;
+			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, ks->seq.l, ks->seq.s); // get all the hits
+			for (i = 0; i < ar.n; ++i) { // traverse each hit
+				mem_aln_t a;
+				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
+				a = mem_reg2aln(opt, idx->bns, idx->pac, ks->seq.l, ks->seq.s, &ar.a[i]); // get forward-strand position and CIGAR
+				// print alignment
+				fprintf(stderr,"%s\t%c\t%s\t%ld\t%d\t", ks->name.s, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);
+				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
+					fprintf(stderr,"%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
+				fprintf(stderr,"\t%d\n", a.NM); // print edit distance
+				free(a.cigar); // don't forget to deallocate CIGAR
+			}
+			free(ar.a); // and deallocate the hit list
+		}
 
 
 	// Write the report containing number of unmapped reads by sample
@@ -428,6 +463,12 @@ int main(int argc, char** argv)
 		free(samples[i].sample_name);
 		}
 	free(samples);
+
+	free(opt);
+	kseq_destroy(ks);
+	gzclose(fq);
+	bwa_idx_destroy(idx);
+
 
 	
 return EXIT_SUCCESS;
