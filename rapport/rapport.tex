@@ -18,7 +18,12 @@
 \frontmatter % introduction
 \chapter{Introduction}
 \paragraph{}
+Titre du stage : Détection d'éventuels contaminants dans des données NGS à l'aide d'un programme en C utilisant l'interface de programmation de BWA. \\
 
+Résumé : 
+Dans le cadre d'analyse de génome / exome en NGS (Nouvelle génération de séquençage à haut débit), notre objectif était de créer un outil en C permettant d'identifier à l'intérieur d'un fichier BAM, les reads non mappés sur le génome humain, et de tenter de les identifier sur d'éventuels contaminants (organismes etrangers tel que par exemple des phages phi-X, E. Coli...). Cet outil crée prend en entrée des fichiers BAM, et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant divers contaminants possibles. Il en sort un rapport du nombre de reads non mappés sur le génome humain par échantillon, ainsi qu'un rapport des reads mappés sur la référence des contaminants. Afin de pouvoir lire et traiter les informations dans les fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé l'aligneur BWA. 
+
+mots clés : NGS, BAM, BWA, samtools, contaminants. 
  
 \clearpage % mettre le sommaire sur une nouvelle page
 \setcounter{tocdepth}{1} % définir la profondeur de l'Index, 1 == Partie + Sous Parties
@@ -27,11 +32,12 @@
 % penser a caler les parties dans differents fichiers ;)
  
 \mainmatter % partie principale du document
-\chapter{1\iere ~partie}
-\section{Prem's}
+\chapter{Contexte biologique}
 \paragraph{}
-...
-\section{Sous Partie LoL}
+
+
+
+\section{Sous Partie }
 \paragraph{}
 ...
 \paragraph{}
@@ -48,7 +54,7 @@
 \paragraph{}
 ...
 \paragraph{}
-Le \LaTeX c'est trop puissant !
+
 \paragraph{}
 ...
 \paragraph{}
@@ -58,7 +64,7 @@ Le \LaTeX c'est trop puissant !
 \backmatter % fin
 \chapter{Conclusion}
 \paragraph{}
-Blablabla ...
+ ...
 \listoffigures % index des illustrations
 \appendix % annexes
 \end{document} 
