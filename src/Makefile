@@ -19,14 +19,14 @@ test: countalign.txt
 	@echo -n "Nombre de Reads dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -c ${sample.bam}
 	@echo -n "Nombre de Reads dans test.bam : "
-	@${PACKAGES}/samtools/samtools view -c test.bam
+	@${PACKAGES}/samtools/samtools view test.bam | wc -l
 	@echo -n "Nombre de Reads NON MAPPES dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -f 4 -c ${sample.bam}
 	@echo -n "Nombre de Reads NON MAPPES dans $< : "
 	@cat $<
 
 countalign.txt : countalign
-	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -o $@ -s sauvergarde.fastq > test.bam
+	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -r UniVec.fa -o $@ -s save.fastq > test.bam
 	
 countalign : countalign.o
 	${CC} -o $@  ${LDFLAGS} $< ${sam.libs}

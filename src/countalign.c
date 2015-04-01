@@ -37,22 +37,45 @@ THE SOFTWARE.
 
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 				
-#define ALIGN_CONTAMINANTS int len, n; opt = mem_opt_init(); \
-				for(n=0; n<fastq_count;n++) {\
-				len= strlen(fastq[n].seq);\
-				mem_alnreg_v ar;\
-				int i;\
-				ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);\
+#define ALIGN_CONTAMINANTS \
+			int len, n,j; \
+			opt = mem_opt_init(); \
+			for(n=0; n<fastq_count;n++) {\
+					len= strlen(fastq[n].seq);\
+					mem_alnreg_v ar;\
+					int i ;\
+					ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);\
 				for (i = 0; i < ar.n; ++i) {\
 					mem_aln_t a;\
 					if (ar.a[i].secondary >= 0) continue; \
 					a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); \
-					fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t\n", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);}\
-				free(fastq[n].qname);\
-				free(fastq[n].seq);\
-				free(fastq[n].qual);\
-				free(ar.a);\
-				}
+					printf("%s%s\t%c\t%s\t%ld\t%d\t\n", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);\
+					Contaminants* searchContaminant = NULL;\
+					for (j=0; j<count_contaminants; j++) {\
+						if (strcmp (contaminant[j].c_name, idx->bns->anns[a.rid].name) == 0)\
+							{\
+							searchContaminant = &contaminant[j];\
+							contaminant[j].contaminants_count++;\
+							break;\
+							}\
+						}\
+					if (searchContaminant == NULL ) {\
+						contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(count_contaminants+1)); \
+						VERIFY_NOT_NULL(contaminant);\
+						contaminant[count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name);\
+						VERIFY_NOT_NULL(contaminant[count_contaminants].c_name);\
+						contaminant[count_contaminants].contaminants_count=1;\
+						searchContaminant=&contaminant[count_contaminants];\
+						count_contaminants++;\
+					}\
+				}\
+			free(fastq[n].qname);\
+			free(fastq[n].seq);\
+			free(fastq[n].qual);\
+			free(ar.a);\
+			}\
+			free(opt)
+				
 				
 #define DUMP_FASTQ if ( file_fastq != NULL) {\
 		   for (i=0; i < fastq_count; i++)\
@@ -63,7 +86,12 @@ THE SOFTWARE.
 			{\
 			fprintf(stderr,"Unsaved fasta file.\n");\
 		   }
-
+		   
+typedef struct Contaminants
+	{
+	char* c_name;
+	float contaminants_count;
+	}Contaminants;
 
 typedef struct Fastq
 	{
@@ -95,19 +123,21 @@ static void usage ()
 { 
 /* cf isatty */
 fprintf(stderr,
-"\nUsage : cat file.bam | ./countalign -o file.txt > file.bam \n\
+"\nUsage : cat file.bam | ./countalign -r file.fa -s file.fastq -o file.txt > file.bam \n\
 \n\
 Description : \n\
 \n\
-This program reads BAM file and looks for unmapped reads. It released a report containing the total number of reads and the number of unmapped reads by sample. \n\
+This program reads BAM file and looks for unmapped reads. It released a report containing the number of unmapped reads by sample. \n\
 \n\
 Options :\n\
 \n\
-         -o \033[4mFILE\033[0m   Name of the output file containing the report of unmapped reads.\n\
+         -o \033[4mFILE\033[0m   Name of the output file containing the report of unmapped reads(*.txt).\n\
 \n\
-         -O \033[4mFILE\033[0m   Name of the output BAM file.\n\
+         -O \033[4mFILE\033[0m   Name of the output BAM file (*.bam).\n\
 \n\
-	 -s \033[4mFILE\033[0m   Save FASTQ file.\n\
+	 -s \033[4mFILE\033[0m   Save FASTQ file (*.fastq).\n\
+\n\
+	 -r \033[4mFILE\033[0m   Reference file (*.fa).\n\
 \n\
          -h        Output help and exit immediately. \n\
 \n\
@@ -131,6 +161,12 @@ static int compareGroup(const void *g1, const void *g2)
 }
 
 
+static int compareContaminant(const void *c1, const void *c2)
+{
+	Contaminants *contaminant1 = (Contaminants *) c1;
+	Contaminants *contaminant2 = (Contaminants *) c2;
+	return contaminant2->contaminants_count - contaminant1->contaminants_count;
+}
 
 
 
@@ -138,25 +174,27 @@ int main(int argc, char** argv)
 	{
 	FILE* file=NULL;
 	FILE* file_fastq=NULL;
-	int c, i=0, sample_count=0, group_count=0, case_o=0, fastq_count=0;
+	int c, i=0, sample_count=0, group_count=0, fastq_count=0, count_contaminants=0;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
-	long nReads=0;
+	float nReads=0;
 	const char *rgId=NULL, *sampleName=NULL;	
 	Sample* samples=NULL;
+	Contaminants* contaminant=NULL;
 	Group* group=NULL;
 	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
-	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL;
+	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL, *ref=NULL;
 	const char *filename_fastq = NULL; 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
 	bwaidx_t *idx;
 	mem_opt_t *opt;
+		
 	
 	// get commande line options
-	 while ((c = getopt(argc, argv,"o:O:hvs:")) != -1) {
+	 while ((c = getopt(argc, argv,"r:o:O:hvs:")) != -1) {
 		 switch(c)
 			 {
 			 case 'h': 
@@ -175,13 +213,22 @@ int main(int argc, char** argv)
 			 case 'o': 
 			 	{
 			 	output_report = strdup(optarg); 
-			 	case_o = 1;
 			 	break;
 			 	}
-			  case 's': 
+			 case 's': 
 			 	{
 			 	filename_fastq = strdup(optarg);
 			 	if( filename_fastq == NULL )
+			 		{
+			 		fprintf(stderr,"Cannot alloc memory.\n");
+			 		return EXIT_FAILURE;
+			 		}
+			 	break;
+			 	}
+			  case 'r': 
+			 	{
+			 	ref = strdup(optarg);
+			 	if( ref == NULL )
 			 		{
 			 		fprintf(stderr,"Cannot alloc memory.\n");
 			 		return EXIT_FAILURE;
@@ -217,16 +264,9 @@ int main(int argc, char** argv)
 				break;
 				}
 			 }
-		if (case_o == 0)
-			{
-			fprintf(stderr, "ERROR\n");
-			usage();
-			return EXIT_FAILURE;
-			}	
-
 	 }
 	
-	
+
 	if (filename_fastq != NULL) 
 			{
 			file_fastq=fopen(filename_fastq,"w+");
@@ -323,7 +363,7 @@ int main(int argc, char** argv)
 	qsort( group, group_count, sizeof(Group), compareGroup);
 
 
-	idx = bwa_idx_load("UniVec.fa", BWA_IDX_ALL);
+	idx = bwa_idx_load(ref, BWA_IDX_ALL);
 		if (NULL == idx) {
 			fprintf(stderr, "Index load failed %s.\n",strerror(errno));
 			exit(EXIT_FAILURE);
@@ -415,11 +455,12 @@ int main(int argc, char** argv)
 			
 			free(buf);
 			fastq_count++;	
-			
+
 			if(fastq_count == 1000)  // Write fastq 
 				{
 				DUMP_FASTQ;
 				ALIGN_CONTAMINANTS;
+				DEBUG;
 				fastq_count=0;
 				}		
 			}
@@ -429,6 +470,9 @@ int main(int argc, char** argv)
 
 	DUMP_FASTQ;
 	ALIGN_CONTAMINANTS;
+	float pourcent =0;
+
+	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant);
 
 	// Write the report containing number of unmapped reads by sample
  	file=fopen(output_report,"w"); 
@@ -438,7 +482,11 @@ int main(int argc, char** argv)
  			{
       			fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
       			}
-
+      		for(i=0;i< count_contaminants;++i)
+ 			{
+ 			pourcent = (contaminant[i].contaminants_count / nReads)*100;
+      			fprintf(file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
+      			}
       		} else 
       			{
 	      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
@@ -448,11 +496,19 @@ int main(int argc, char** argv)
 
         
         // Close files, free and return
+       	for (i=0; i<count_contaminants; i++)
+		{
+		free(contaminant[i].c_name);
+		}
+	free(contaminant);
+
+	bwa_idx_destroy(idx);
         fclose(file);
 	bam_destroy1(b);
 	sam_close(fp);
 	samclose(out_file);
 	free(filename_out);
+	free(ref);
 	if (file_fastq != NULL) fclose(file_fastq);
 
 	for (i=0; i<group_count; i++)
@@ -467,9 +523,10 @@ int main(int argc, char** argv)
 		free(samples[i].sample_name);
 		}
 	free(samples);
+	
 
-	free(opt);
-	bwa_idx_destroy(idx);
+
+
 	
 	
 	
