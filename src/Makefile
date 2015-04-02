@@ -3,7 +3,7 @@
 # $@ = nom de la cible
 # $< est le nom de la PREMIERE dependance
 .PHONY:all test clean
-sample.bam=/home/bird/masterm2/sample2.bam
+sample.bam=/home/bird/masterm2/sample3.bam
 CC=gcc
 PACKAGES=../../packages
 samtools.dir=${PACKAGES}/samtools
@@ -13,9 +13,9 @@ CFLAGS= -Wall -g -I ${samtools.dir} -I ${bwa.dir}
 LDFLAGS=-L ${samtools.dir} -L ${htslib.dir} -L ${bwa.dir}
 sam.libs= -lbam -lhts -lbwa -lm -lz -lpthread
 
-all: countalign test20150317 test
+all: contalign test20150317 test
 
-test: countalign.txt
+test: contalign.txt
 	@echo -n "Nombre de Reads dans ${sample.bam} : "
 	@${PACKAGES}/samtools/samtools view -c ${sample.bam}
 	@echo -n "Nombre de Reads dans test.bam : "
@@ -25,22 +25,22 @@ test: countalign.txt
 	@echo -n "Nombre de Reads NON MAPPES dans $< : "
 	@cat $<
 
-countalign.txt : countalign
-	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./countalign -r UniVec.fa -o $@ -s save.fastq > test.bam
+contalign.txt : contalign
+	cat  ${sample.bam} | LD_LIBRARY_PATH=${htslib.dir} ./contalign -r UniVec.fa -o $@ -s save.fastq > test.bam
 	
-countalign : countalign.o
+contalign : contalign.o
 	${CC} -o $@  ${LDFLAGS} $< ${sam.libs}
 
-countalign.o : countalign.c debug.h
+contalign.o : contalign.c debug.h
 	${CC} -c -o $@ ${CFLAGS} $<
 	
 test20150317: test20150317.c
 	${CC} -o $@ $<
 
 clean:
-	rm -f countalign
+	rm -f contalign
 	rm -rf $(dir $(TARGETS))
 
 
 	
-# LD_LIBRARY_PATH=../../packages/samtools/htslib ./countalign
+# LD_LIBRARY_PATH=../../packages/samtools/htslib ./contalign

@@ -1,0 +1,59 @@
+
+.TH  contalign 1 "April 02, 2015" "Version 1.0" "Bioinformatics tools"
+.SH NAME 
+Contalign \- Unmapped reads alignment
+.\"The MIT License (MIT)
+.\"
+.\"Copyright (c) 2015 Jennifer Rondineau
+.\"
+.\"http://samtools.sourceforge.net/
+.\"Authors: Heng Li, Bob Handsaker, Jue Ruan, Colin Hercus, Petr Danecek
+.\"
+.\"https://github.com/lh3/bwa/blob/master/example.c
+.\"Authors: Heng Li's
+.\"Permission is hereby granted, free of charge, to any person obtaining a copy
+.\"of this software and associated documentation files (the "Software"), to deal
+.\"in the Software without restriction, including without limitation the rights
+.\"to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\"copies of the Software, and to permit persons to whom the Software is
+.\"furnished to do so, subject to the following conditions:
+.\"
+.\"The above copyright notice and this permission notice shall be included in
+.\"all copies or substantial portions of the Software.
+.\"
+.\"THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\"IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\"FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\"AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\"LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\"OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+.\"THE SOFTWARE. 
+.\"
+.SH SYNOPSIS
+.PP
+Contalign -r ref.fa -o report.txt -s save.fastq > file.bam
+.PP
+Contalign -r ref.fa -o report.txt > file.bam
+.SH DESCRIPTION
+\fBContalign\fP is a software allowing to read BAM file and looks for unmapped reads. Contalign mapping unmapped reads against a large reference of contaminants. It released a report containing the number of unmapped reads by sample and potential contaminants. 
+.SH OPTIONS
+.TP
+.BI "-o " FILE
+Name of the output file containing the report of unmapped reads(*.txt)
+.TP
+.BI "-s " FILE 
+Save FASTQ file (*.fastq)
+.TP
+.BI "-h "
+Output help and exit immediately
+.TP
+.BI "-v "
+Output version and exit immediately
+.TP
+.SH AUTHOR
+\fBJennifer Rondineau\fP
+Heng Li from the Sanger Institute wrote the C version of samtools. Bob
+Handsaker from the Broad Institute implemented the BGZF library. 
+Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c
+.SH SEE ALSO
+
