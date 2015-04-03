@@ -13,8 +13,24 @@ build machine.
 
 # Download & install
 
+```shell
 $ git clone "https://github.com/JenniferRondineau/masterm2.git"
+```
 
 # Compilation 
-'cd' to the masterm2 directory and type 'make' to compile contalign.
+'cd' to the masterm2 directory and type
+
+```shell
+$ make
+```
+
+to compile contalign.
+
+
+# Authors
+
+# Report errors
+
+# license
+
 
