@@ -1,7 +1,7 @@
 
-.TH  contalign 1 "April 02, 2015" "Version 1.0" "Bioinformatics tools"
+.TH  contalign 1 "April 03, 2015" "Version 1.0" "Bioinformatics tools"
 .SH NAME 
-Contalign \- Unmapped reads alignment
+Contalign 
 .\"The MIT License (MIT)
 .\"
 .\"Copyright (c) 2015 Jennifer Rondineau
@@ -31,29 +31,34 @@ Contalign \- Unmapped reads alignment
 .\"
 .SH SYNOPSIS
 .PP
-Contalign -r ref.fa -o report.txt -s save.fastq > file.bam
+Contalign -r ref.fa -o report -s save.fastq > file.bam
 .PP
-Contalign -r ref.fa -o report.txt > file.bam
+Contalign -r ref.fa -o report > file.bam
 .SH DESCRIPTION
-\fBContalign\fP is a software allowing to read BAM file and looks for unmapped reads. Contalign mapping unmapped reads against a large reference of contaminants. It released a report containing the number of unmapped reads by sample and potential contaminants. 
+\fBContalign\fP is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants. 
 .SH OPTIONS
 .TP
 .BI "-o " FILE
-Name of the output file containing the report of unmapped reads(*.txt)
+Name of the output
+.IR FILE
+containing the report of unmapped reads
 .TP
 .BI "-s " FILE 
-Save FASTQ file (*.fastq)
+Save FASTQ
+.IR FILE
+(*.fastq)
 .TP
 .BI "-h "
 Output help and exit immediately
 .TP
 .BI "-v "
 Output version and exit immediately
-.TP
 .SH AUTHOR
-\fBJennifer Rondineau\fP
+\fBJennifer Rondineau.\fP
 Heng Li from the Sanger Institute wrote the C version of samtools. Bob
 Handsaker from the Broad Institute implemented the BGZF library. 
 Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c
 .SH SEE ALSO
+.TP
+Samtools website <http://samtools.sourceforge.net>,  BWA website <http://bio-bwa.sourceforge.net>
 

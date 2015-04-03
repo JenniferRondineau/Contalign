@@ -1,0 +1,7 @@
+Jennifer Rondineau, bioinformatics student (M1) wrote this code.
+ 
+Heng Li from the Sanger Institute wrote the C version of samtools. 
+
+Bob Handsaker from the Broad Institute implemented the BGZF library. 
+
+Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c

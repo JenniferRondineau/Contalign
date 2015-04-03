@@ -53,7 +53,7 @@ fprintf(stderr,
 \n\
 Description : \n\
 \n\
-This program reads BAM file and looks for unmapped reads. It released a report containing the number of unmapped reads by sample. \n\
+Contalign is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants.  \n\
 \n\
 Options :\n\
 \n\
