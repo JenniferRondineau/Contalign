@@ -3,10 +3,10 @@ System Requirements
 
 Contalign depends on the samtools library <http://samtools.sourceforge.net>, 
 the BWA library <http://bio-bwa.sourceforge.net>, and HTSlib <http://www.htslib.org>.
-Building him requires samtools and BWA development files to be installed on the 
-build machine. 
+
+Contalign requires gwet <https://www.gnu.org/software/wget/>.
 
 Compilation
 ===========
 
-'cd' to the masterm2 directory and type 'make' to compile contalign.
+'cd' to the masterm2/src directory and type 'make' to compile contalign.
