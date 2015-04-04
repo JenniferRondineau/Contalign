@@ -39,6 +39,7 @@ test20150317: test20150317.c
 
 
 bwa-${bwa.version}/libbwa.a:
+	rm -rf bwa-${bwa.version}
 	wget -O ${bwa.version}.tar.gz "https://github.com/lh3/bwa/archive/${bwa.version}.tar.gz"
 	tar xfvz ${bwa.version}.tar.gz
 	rm ${bwa.version}.tar.gz
@@ -46,13 +47,15 @@ bwa-${bwa.version}/libbwa.a:
 
 
 samtools-${samtools.version}/libam.a:
-	wget -O ${samtools.version}.tar.bz2 "https://github.com/samtools/samtools/releases/download/1.2/samtools-${samtools.version}.tar.bz2"
+	rm -rf samtools-${samtools.version}
+	wget -O ${samtools.version}.tar.bz2 "https://github.com/samtools/samtools/releases/download/${samtools.version}/samtools-${samtools.version}.tar.bz2"
 	tar xvjf ${samtools.version}.tar.bz2
 	rm ${samtools.version}.tar.bz2
 	(cd samtools-${samtools.version} ; make)
 
 
 htslib-${htslib.version}/libhts.a:
+	rm -rf htslib-${htslib.version}
 	wget -O ${htslib.version}.tar.gz "https://github.com/samtools/htslib/archive/${htslib.version}.tar.gz"
 	tar xfvz ${htslib.version}.tar.gz
 	rm ${htslib.version}.tar.gz
