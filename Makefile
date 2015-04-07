@@ -1,4 +1,4 @@
-.PHONY:all compile test clean
+.PHONY: all compile test clean
 
 all: compile test
 

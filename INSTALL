@@ -4,7 +4,7 @@ System Requirements
 Contalign depends on the samtools library <http://samtools.sourceforge.net>, 
 the BWA library <http://bio-bwa.sourceforge.net>, and HTSlib <http://www.htslib.org>.
 
-Contalign requires gwet <https://www.gnu.org/software/wget/>.
+Contalign requires wget <https://www.gnu.org/software/wget/>.
 
 Compilation
 ===========

@@ -53,6 +53,12 @@ Output help and exit immediately
 .TP
 .BI "-v "
 Output version and exit immediately
+.SH LIMITATIONS
+.TP
+The BAM file must contain a header with @RG lines. 
+.TP
+The reference of contaminants needs to be indexed.
+masterm2/src/bwa-version/bwa index ref.fa 
 .SH AUTHOR
 \fBJennifer Rondineau.\fP
 Heng Li from the Sanger Institute wrote the C version of samtools. Bob

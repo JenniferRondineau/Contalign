@@ -31,34 +31,36 @@ THE SOFTWARE.
 */
 
 
-
+/* contaminant structure */
 typedef struct Contaminants
 	{
-	char* c_name; 
+	char* c_name; /* name of contaminant ex: E.coli */
 	float contaminants_count; 
 	}Contaminants;
-
+	
+/*Fastq structure */
 typedef struct Fastq
 	{
 	char* qname; /* Name of read */ 
 	char* read; /* "/1" forward reads ; "/2" reverse reads */
-	char* seq;
+	char* seq; /* sequence */ 
 	char* qual; /* the quality values for the sequence */
 	}Fastq;
 
-
+/* Sample structure */ 
 typedef struct SampleName
  	{
  	char* sample_name; /* Name of sample must be unique */
- 	long unMap;
- 	Fastq* fastq;
+ 	long unMap; /* number of unmapped reads by sample*/
+ 	Fastq* fastq; /*fastq associated with this sample */
  	}Sample;
- 	
+ 
+/* Group structure */ 	
 typedef struct Group
  	{
- 	long unMap;
- 	char* rgId;/* Read group must be unique */
- 	Sample* sample;
+ 	long unMap; /* number of unmapped reads by read group */
+ 	char* rgId; /* Name of read group must be unique */
+ 	Sample* sample; /* Sample associated with this read group */ 
  	}Group;
  	
  	
@@ -77,10 +79,12 @@ typedef struct Group
 			fprintf(stderr,"Unsaved fasta file.\n");\
 		   }
 
+/*version of this code */ 
 static void version () {printf(" Version : v.1 \n");}
 
-
+/* map unmapped reads against a reference of contaminants */
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx);
+
 
 
 static int compareGroup(const void *g1, const void *g2)

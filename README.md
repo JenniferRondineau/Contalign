@@ -23,8 +23,12 @@ $ cd masterm2/src
 $ make
 ```
 
-to compile contalign.
+# Example 
 
+```shell
+$ cd masterm2/test
+$ make
+```
 
 # Authors
 
@@ -37,6 +41,8 @@ Bob Handsaker from the Broad Institute implemented the BGZF library.
 Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c
 
 # Report errors
+
+
 
 # license
 The MIT License (MIT)
