@@ -57,7 +57,7 @@ htslib-${htslib.version}/libhts.a:
 	(cd htslib-${htslib.version} ; make)
 
 sample : 
-	ftp_proxy=cache.ha.univ-nantes.fr:3128 wget -O - "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/data/HG00096/exome_alignment/HG00096.chrom20.ILLUMINA.bwa.GBR.exome.20120522.bam" | ../src/samtools-${samtools.version}/samtools view -h - | head -n 50000 > sample.bam
+	wget -O - "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/data/HG00096/exome_alignment/HG00096.chrom20.ILLUMINA.bwa.GBR.exome.20120522.bam" | ../src/samtools-${samtools.version}/samtools view -h - | head -n 50000 > sample.bam
 
 clean:
 	rm -f contalign
