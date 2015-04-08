@@ -127,7 +127,7 @@ int main(int argc, char** argv)
 	FILE* file=NULL;
 	FILE* file_fastq=NULL;
 	int c, i=0, sample_count=0, group_count=0, fastq_count=0;
-	int count_contaminants=0;
+	int count_contaminants=0, rapport_contaminant =0 ;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
@@ -138,14 +138,14 @@ int main(int argc, char** argv)
 	Group* group=NULL;
 	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
-	char *qname = NULL, *read = NULL, *output_report, *filename_out =NULL, *ref=NULL;
+	char *qname = NULL, *read = NULL, *output_report, *filename_in=NULL, *filename_out =NULL, *ref=NULL;
 	const char *filename_fastq = NULL; 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
 	bwaidx_t *idx;
 	float pourcent =0;
 
-		
+	
 	
 	// get commande line options
         int option_index = 0;
@@ -153,60 +153,45 @@ int main(int argc, char** argv)
        	    {"help", no_argument, NULL, 'h'},
        	    {"version", no_argument, NULL, 'v' },
             {"save",  required_argument, 0, 's'},
+            {"report",  required_argument, 0, 'o'},
+            {"databwa",  required_argument, 0, 'r'},
+            {"output",  optional_argument, 0, 'O'},
+            {"input",  required_argument, 0, 'i'},
+            {"report_contaminant", no_argument, 0, 'c'},
             {0,         0,                 0,  0 }
         };
-	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:", long_options, &option_index)) != -1) {
+	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:i:c", long_options, &option_index)) != -1) {
 		 switch(c)
 			 {
 
-			 case 'h': 
+			case 'h': 
 			 	{
 			 	usage();
 			 	return EXIT_SUCCESS;
 			 	break;
 			 	}
-			 case 'v':
+			case 'v':
 			 	{
 			 	version ();
 			 	return EXIT_SUCCESS;
 			 	break;
 			 	}
 			 
-			 case 'o': 
+			case 'o': 
 			 	{
-			 	output_report = strdup(optarg); 
+			 	output_report = optarg; 
 			 	break;
 			 	}
-			 case 's': 
-			 	{
-			 	filename_fastq = strdup(optarg);
-			 	if( filename_fastq == NULL )
-			 		{
-			 		fprintf(stderr,"Cannot alloc memory.\n");
-			 		return EXIT_FAILURE;
-			 		}
-			 	break;
-			 	}
-			  case 'r': 
-			 	{
-			 	ref = strdup(optarg);
-			 	if( ref == NULL )
-			 		{
-			 		fprintf(stderr,"Cannot alloc memory.\n");
-			 		return EXIT_FAILURE;
-			 		}
-			 	break;
-			 	}
-			 case 'O' :
-			 	{
-			 	filename_out = strdup(optarg);
-			 	if( filename_out == NULL )
-			 		{
-			 		fprintf(stderr,"Cannot alloc memory.\n");
-			 		return EXIT_FAILURE;
-			 		}
-			 	break;
-			 	}
+			case 'i': filename_in = optarg; break;
+
+			case 's':  filename_fastq = optarg; break;
+				
+			case 'r': ref = optarg; break;
+
+			case 'O' : filename_out = optarg; break;
+			 
+			case 'c': rapport_contaminant = 1; break;
+
 			case '?': 
 				{
 				 fprintf(stderr, "ERROR: option -%c is undefined\n", optopt);
@@ -228,7 +213,6 @@ int main(int argc, char** argv)
 			 }
 			 
 	 }
-	
 
 	if (filename_fastq != NULL) //open the fastq file, if option "save" is indicated 
 			{
@@ -241,7 +225,7 @@ int main(int argc, char** argv)
 			}		
 			
 	
-	samFile *fp = sam_open( "-" ); 
+	samFile *fp = sam_open( filename_in!=NULL? filename_in : "-" ); 
 	
 		if (fp == NULL) 
 			{
@@ -341,6 +325,10 @@ int main(int argc, char** argv)
 		if ( (b->core.flag & BAM_FUNMAP ) ) //detect unmapped reads
 			{
 			Group key;
+			if ((b->core.flag & BAM_FMUNMAP ) ) 
+			{
+			fprintf(stderr, "Not orphelin \n");
+			}
 			search = bam_aux_get(b, "RG"); 
 			if (search == NULL) {
 				fprintf(stderr, "Error, missing @RG tag\n");
@@ -470,8 +458,6 @@ int main(int argc, char** argv)
 	bam_destroy1(b);
 	sam_close(fp);
 	samclose(out_file);
-	free(filename_out);
-	free(ref);
 	if (file_fastq != NULL) fclose(file_fastq);
 
 	for (i=0; i<group_count; i++)
