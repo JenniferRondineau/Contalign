@@ -57,18 +57,24 @@ Contalign is a software allowing to read BAM files and looks for unmapped reads.
 \n\
 Options :\n\
 \n\
-         -o \033[4mFILE\033[0m   Name of the output file containing the report of unmapped reads(*.txt).\n\
+         -o, --report   \033[4mFILE\033[0m       Name of the output file containing the report of unmapped reads.\n\
 \n\
-         -O \033[4mFILE\033[0m   Name of the output BAM file (*.bam).\n\
+         -O, --output   \033[4mFILE\033[0m       Name of the output BAM file (*.bam).\n\
 \n\
-	 -s \033[4mFILE\033[0m   Save FASTQ file (*.fastq).\n\
+	 -s, --save     \033[4mFILE\033[0m       Save FASTQ file (*.fastq).\n\
 \n\
-	 -r \033[4mFILE\033[0m   Reference file (*.fa).\n\
+	 -r, --databwa  \033[4mFILE\033[0m       Reference file (*.fa).\n\
 \n\
-         -h        Output help and exit immediately. \n\
+         -h, --help                Output help and exit immediately. \n\
 \n\
-         -v        Output version and exit immediately. \n\n");
+         -v, --version             Output version and exit immediately. \n\n");
 }
+
+
+
+
+
+
 
 
 
