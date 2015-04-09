@@ -35,6 +35,7 @@ ${samtools.dir}/libbam.a:
 	rm samtools-${samtools.version}.tar.bz2
 	(cd $(dir $@) ; make)
 
+
 clean:
 	rm -f contalign ${htslib.dir} ${samtools.dir} ${bwa.dir}
 

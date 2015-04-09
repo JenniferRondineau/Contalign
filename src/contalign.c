@@ -101,12 +101,6 @@ static void usage ()
 
 
 
-
-
-
-
-
-
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx)
 {
 	int i=0, n=0, len=0, j=0;
@@ -162,7 +156,7 @@ int main(int argc, char** argv)
 	FILE* file=NULL;
 	FILE* file_fastq=NULL;
 	int c, i=0, sample_count=0, group_count=0, fastq_count=0;
-	int count_contaminants=0, rapport_contaminant =0 ;
+	int count_contaminants=0, report_contaminant =0 ;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
@@ -195,56 +189,37 @@ int main(int argc, char** argv)
             {"report_contaminant", no_argument, 0, 'c'},
             {0,         0,                 0,  0 }
         };
+        
 	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:i:c", long_options, &option_index)) != -1) {
+
 		 switch(c)
 			 {
 
-			case 'h': 
-			 	{
-			 	usage();
-			 	return EXIT_SUCCESS;
-			 	break;
-			 	}
-			case 'v':
-			 	{
-			 	version ();
-			 	return EXIT_SUCCESS;
-			 	break;
-			 	}
-			case 'o': 
-			 	{
-			 	output_report = optarg; 
-			 	break;
-			 	}
+		 switch(c) {
+
+			case 'h': usage(); return EXIT_SUCCESS; break;
+			
+			case 'v': version (); return EXIT_SUCCESS; break;
+			 
+			case 'o': output_report = optarg; break;
+			
 			case 'i': filename_in = optarg; break;
 
-			case 's':  filename_fastq = optarg; break;
+			case 's': filename_fastq = optarg; break;
 				
 			case 'r': ref = optarg; break;
 
-			case 'O' : filename_out = optarg; break;
+			case 'O': filename_out = optarg; break;
 			 
-			case 'c': rapport_contaminant = 1; break;
+			case 'c': report_contaminant = 1; break;
 
-			case '?': 
-				{
-				 fprintf(stderr, "ERROR: option -%c is undefined\n", optopt);
-			 	 return EXIT_FAILURE;
-			 	 break;
-			 	 }
-			case ':': 
-				{
-				fprintf(stderr, "ERROR: option -%c requires an argument\n",optopt);
-				return EXIT_FAILURE;
-			 	break;
-			 	}
-			default :
-				{
-				usage(); 
-				return EXIT_FAILURE;
-				break;
-				}
-			 }
+			case '?': fprintf(stderr, "ERROR: option -%c is undefined\n", optopt); return EXIT_FAILURE; break;
+			
+			case ':': fprintf(stderr, "ERROR: option -%c requires an argument\n",optopt); return EXIT_FAILURE; break;
+			 	
+			default : { usage(); return EXIT_FAILURE; break; }
+			
+		}
 			 
 	 }
 
@@ -359,9 +334,9 @@ int main(int argc, char** argv)
 		if ( (b->core.flag & BAM_FUNMAP ) ) //detect unmapped reads
 			{
 			Group key;
-			if ((b->core.flag & BAM_FMUNMAP ) ) 
-			{
-			fprintf(stderr, "Not orphelin \n");
+			if ((b->core.flag & BAM_FMUNMAP)) 
+				{
+				fprintf(stderr, "Not orphelin \n");
 			}
 			search = bam_aux_get(b, "RG"); 
 			if (search == NULL) {
@@ -489,11 +464,6 @@ int main(int argc, char** argv)
 		}
 	free(contaminant);
 
-	bwa_idx_destroy(idx);
-        fclose(file);
-	bam_destroy1(b);
-	sam_close(fp);
-	samclose(out_file);
 	if (file_fastq != NULL) fclose(file_fastq);
 
 	for (i=0; i<group_count; i++)
@@ -509,6 +479,11 @@ int main(int argc, char** argv)
 		}
 	free(samples);
 	
+	bwa_idx_destroy(idx);
+        fclose(file);
+	bam_destroy1(b);
+	sam_close(fp);
+	samclose(out_file);
 
 
 	

@@ -38,20 +38,23 @@ Contalign -r ref.fa -o report > file.bam
 \fBContalign\fP is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants. 
 .SH OPTIONS
 .TP
-.BI "-o " FILE
+.BI "-o, --report " FILE
 Name of the output
 .IR FILE
 containing the report of unmapped reads
 .TP
-.BI "-s " FILE 
+.BI "-s, --save " FILE 
 Save FASTQ
 .IR FILE
 (*.fastq)
 .TP
-.BI "-h "
+.BI "-r, --databwa " FILE 
+Reference file (*.fa)
+.TP
+.BI "-h, --help  "
 Output help and exit immediately
 .TP
-.BI "-v "
+.BI "-v, --version "
 Output version and exit immediately
 .SH LIMITATIONS
 .TP
