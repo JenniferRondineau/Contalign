@@ -192,9 +192,6 @@ int main(int argc, char** argv)
         
 	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:i:c", long_options, &option_index)) != -1) {
 
-		 switch(c)
-			 {
-
 		 switch(c) {
 
 			case 'h': usage(); return EXIT_SUCCESS; break;
@@ -217,7 +214,8 @@ int main(int argc, char** argv)
 			
 			case ':': fprintf(stderr, "ERROR: option -%c requires an argument\n",optopt); return EXIT_FAILURE; break;
 			 	
-			default : { usage(); return EXIT_FAILURE; break; }
+			default : usage(); return EXIT_FAILURE; break;
+			
 			
 		}
 			 
@@ -434,27 +432,31 @@ int main(int argc, char** argv)
 	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant); //sort the contaminants in descending order
 	
 	
-	ET SI output_report est NULL ?
-	
 	// Write the report containing number of unmapped reads by sample and potential contaminants
- 	file=fopen(output_report,"w"); 
- 		if ( file != NULL) 
- 		{
- 		for(i=0;i< sample_count;++i)
- 			{
-      			fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
-      			}
-      		for(i=0;i< count_contaminants;++i)
- 			{
- 			pourcent = (contaminant[i].contaminants_count / nReads)*100;
-      			fprintf(file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
-      			}
-      		} else 
-      			{
-	      	 	fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
-	      	 	return EXIT_FAILURE;
-      	 		}     	 		
- 	
+ 	if (output_report != NULL) {
+	 	file=fopen(output_report,"w");
+		if ( file != NULL)
+			{
+			for(i=0;i< sample_count;++i)
+				fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
+			for(i=0;i< count_contaminants;++i)
+				{
+				pourcent = (contaminant[i].contaminants_count / nReads)*100;
+				fprintf(file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
+				}
+		} else {
+			fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
+			return EXIT_FAILURE;
+			} 
+	} else {
+		for(i=0;i< sample_count;++i)
+			fprintf(stderr,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
+		for(i=0;i< count_contaminants;++i)
+			{
+			pourcent = (contaminant[i].contaminants_count / nReads)*100;
+			fprintf(stderr,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
+			}
+	}
 
         
         // Close files, free and return
