@@ -43,32 +43,61 @@ THE SOFTWARE.
 #include "contalign.h"
 #include <getopt.h>
 
+ 	
+#define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
+	
+	
+									
+#define DUMP_FASTQ if ( file_fastq != NULL) {\
+		   for (i=0; i < fastq_count; i++)\
+			{\
+			fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
+			}\
+		   } else \
+			{\
+			fprintf(stderr,"Unsaved fasta file.\n");\
+		   }
 
-		   
+
+
+/*version of this code */ 
+static void version () {fputs(" Version : " COUNTALIGN_VERSION "\n",stdout);}
+
+static int compareGroup(const void *g1, const void *g2)
+{
+	Group *group1 = (Group *) g1;
+	Group *group2 = (Group *) g2;
+	return strcmp (group1->rgId, group2->rgId);  //sort Read Group in alphabetical order
+}
+
+
+static int compareContaminant(const void *c1, const void *c2)
+{
+	Contaminants *contaminant1 = (Contaminants *) c1;
+	Contaminants *contaminant2 = (Contaminants *) c2;
+	return contaminant2->contaminants_count - contaminant1->contaminants_count; //sort contaminants in descending order
+}
+
+#define PRINT_OPTION(SHORT,LONG,TYPE,DEF) \
+	fputs("   -" SHORT ",--" LONG "   " TYPE "  " DEF ".\n",stderr)   
 
 static void usage ()
-{ 
-fprintf(stderr,
-"\nUsage : cat file.bam | ./contalign -r file.fa -s file.fastq -o file.txt > file.bam \n\
-\n\
-Description : \n\
-\n\
-Contalign is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants.  \n\
-\n\
-Options :\n\
-\n\
-         -o, --report   \033[4mFILE\033[0m       Name of the output file containing the report of unmapped reads.\n\
-\n\
-         -O, --output   \033[4mFILE\033[0m       Name of the output BAM file (*.bam).\n\
-\n\
-	 -s, --save     \033[4mFILE\033[0m       Save FASTQ file (*.fastq).\n\
-\n\
-	 -r, --databwa  \033[4mFILE\033[0m       Reference file (*.fa).\n\
-\n\
-         -h, --help                Output help and exit immediately. \n\
-\n\
-         -v, --version             Output version and exit immediately. \n\n");
-}
+	{ 
+	fputs(
+	"\nUsage : cat file.bam | ./contalign -r file.fa -s file.fastq -o file.txt > file.bam \n\
+	\n\
+	Description : \n\
+	\n\
+	Contalign is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants.  \n\
+	\n\
+	Options :\n",stderr);
+	PRINT_OPTION("o","report","FILE","Name of the output file containing the report of unmapped reads");
+	PRINT_OPTION("O","output","FILE","Name of the output BAM file (*.bam)");
+	PRINT_OPTION("s","save","FILE","Save FASTQ file (*.fastq)");
+	PRINT_OPTION("r","databwa","FILE","Reference file (*.fa)");
+	PRINT_OPTION("h","help","FILE","Output help and exit immediately.");
+	PRINT_OPTION("v","version","FILE","Output version and exit immediately.");
+	}
 
 
 
@@ -144,7 +173,7 @@ int main(int argc, char** argv)
 	Group* group=NULL;
 	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
-	char *qname = NULL, *read = NULL, *output_report, *filename_in=NULL, *filename_out =NULL, *ref=NULL;
+	char *qname = NULL, *read = NULL, *output_report=NULL, *filename_in=NULL, *filename_out =NULL, *ref=NULL;
 	const char *filename_fastq = NULL; 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
@@ -182,7 +211,6 @@ int main(int argc, char** argv)
 			 	return EXIT_SUCCESS;
 			 	break;
 			 	}
-			 
 			case 'o': 
 			 	{
 			 	output_report = optarg; 
@@ -430,7 +458,9 @@ int main(int argc, char** argv)
 	
 	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant); //sort the contaminants in descending order
 	
-
+	
+	ET SI output_report est NULL ?
+	
 	// Write the report containing number of unmapped reads by sample and potential contaminants
  	file=fopen(output_report,"w"); 
  		if ( file != NULL) 

@@ -29,6 +29,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 */
+#ifndef COUNT_ALIGN_H
+#define COUNT_ALIGN_H
 
 
 /* contaminant structure */
@@ -64,41 +66,16 @@ typedef struct Group
  	}Group;
  	
  	
- 	
-#define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
-	
-	
-									
-#define DUMP_FASTQ if ( file_fastq != NULL) {\
-		   for (i=0; i < fastq_count; i++)\
-			{\
-			fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
-			}\
-		   } else \
-			{\
-			fprintf(stderr,"Unsaved fasta file.\n");\
-		   }
 
-/*version of this code */ 
-static void version () {printf(" Version : v.1 \n");}
 
 /* map unmapped reads against a reference of contaminants */
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx);
 
 
-
-static int compareGroup(const void *g1, const void *g2)
-{
-	Group *group1 = (Group *) g1;
-	Group *group2 = (Group *) g2;
-	return strcmp (group1->rgId, group2->rgId);  //sort Read Group in alphabetical order
-}
+#define COUNTALIGN_VERSION "0.1"
 
 
-static int compareContaminant(const void *c1, const void *c2)
-{
-	Contaminants *contaminant1 = (Contaminants *) c1;
-	Contaminants *contaminant2 = (Contaminants *) c2;
-	return contaminant2->contaminants_count - contaminant1->contaminants_count; //sort contaminants in descending order
-}
+#endif
+
+
 
