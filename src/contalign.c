@@ -4,11 +4,6 @@ The MIT License (MIT)
 
 Copyright (c) 2015 Jennifer Rondineau
 
-http://samtools.sourceforge.net/
-Authors: Heng Li, Bob Handsaker, Jue Ruan, Colin Hercus, Petr Danecek
-
-https://github.com/lh3/bwa/blob/master/example.c
-Authors: Heng Li's
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +28,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "sam.h"
 #include "sam_header.h"
 #include "debug.h"
@@ -84,11 +80,12 @@ static int compareContaminant(const void *c1, const void *c2)
 static void usage ()
 	{ 
 	fputs(
-	"\nUsage : cat file.bam | ./contalign -r file.fa -s file.fastq -o file.txt > file.bam \n\
-	\n\
-	Description : \n\
-	\n\
-	Contalign is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants.  \n\
+	"Version: " COUNTALIGN_VERSION "\n"
+	"Usage : cat file.bam | ./contalign -r file.fa -s file.fastq -o file.txt > file.bam \n"
+	"\n"
+	"Description : \n"
+	"\n"
+	"Contalign is a software allowing to read BAM files and looks for unmapped reads. Contalign map unmapped reads against a large reference of contaminants. It releases a report containing the number of unmapped reads by sample and the potential contaminants.  \n\
 	\n\
 	Options :\n",stderr);
 	PRINT_OPTION("o","report","FILE","Name of the output file containing the report of unmapped reads");
@@ -154,6 +151,7 @@ return contaminant;
 int main(int argc, char** argv)
 	{
 	FILE* file=NULL;
+	FILE* input_file=stdin;
 	FILE* file_fastq=NULL;
 	int c, i=0, sample_count=0, group_count=0, fastq_count=0;
 	int count_contaminants=0, report_contaminant =0 ;
@@ -174,8 +172,7 @@ int main(int argc, char** argv)
 	bwaidx_t *idx;
 	float pourcent =0;
 
-	
-	
+
 	// get commande line options
         int option_index = 0;
         static struct option long_options[] = {
@@ -230,15 +227,18 @@ int main(int argc, char** argv)
 		      	 	return EXIT_FAILURE;
 	      	 		}     	 	
 			}		
-			
-	
+
+	fprintf(stderr,"Reading from %s...\n",(filename_in!=NULL? filename_in : "<<stdin>>"));
 	samFile *fp = sam_open( filename_in!=NULL? filename_in : "-" ); 
-	
-		if (fp == NULL) 
-			{
-        		fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
-        		return EXIT_FAILURE;
-			}
+	if (fp == NULL) 
+		{
+		fprintf(stderr,"Cannot read file \"%s\". %s.\n",
+			(filename_in!=NULL? filename_in : "<<stdin>>"),
+			strerror(errno)
+			);
+		return EXIT_FAILURE;
+		}
+
 
 	header = sam_hdr_read(fp); //read and copy header of initial BAM file
 
@@ -316,13 +316,16 @@ int main(int argc, char** argv)
 
 	qsort( group, group_count, sizeof(Group), compareGroup);  //sort Read Group in alphabetical order 
 
-
-	idx = bwa_idx_load(ref, BWA_IDX_ALL); // load the BWA index
+	if(ref == NULL) {
+		fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
+		exit(EXIT_FAILURE);
+	} else { 
+		idx = bwa_idx_load(ref, BWA_IDX_ALL); // load the BWA index
 		if (NULL == idx) {
-			fprintf(stderr, "Index load failed %s.\n",strerror(errno));
+			fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
 			exit(EXIT_FAILURE);
 		}
-		
+	}	
 
 
 
@@ -444,13 +447,14 @@ int main(int argc, char** argv)
 				pourcent = (contaminant[i].contaminants_count / nReads)*100;
 				fprintf(file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
 				}
+			fclose(file);
 		} else {
-			fprintf(stderr,"Cannot read file. %s.\n",strerror(errno));
+			fprintf(stderr,"Cannot write file. %s.\n",strerror(errno));
 			return EXIT_FAILURE;
 			} 
-	} else {
+	} else { //if there are not output file name
 		for(i=0;i< sample_count;++i)
-			fprintf(stderr,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
+			fprintf(stderr,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap); // the repport is written to stderr
 		for(i=0;i< count_contaminants;++i)
 			{
 			pourcent = (contaminant[i].contaminants_count / nReads)*100;
@@ -482,11 +486,9 @@ int main(int argc, char** argv)
 	free(samples);
 	
 	bwa_idx_destroy(idx);
-        fclose(file);
 	bam_destroy1(b);
 	sam_close(fp);
 	samclose(out_file);
-
 
 	
 return EXIT_SUCCESS;
