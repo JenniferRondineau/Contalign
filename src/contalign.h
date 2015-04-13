@@ -27,6 +27,13 @@ THE SOFTWARE.
 #define COUNT_ALIGN_H
 #include "debug.h"
 
+
+typedef struct Contalign
+	{
+	samFile *fp;
+	samfile_t *out_file;
+	}Contalign;
+
 /* contaminant structure */
 typedef struct Contaminants
 	{
