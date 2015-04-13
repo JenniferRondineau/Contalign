@@ -23,7 +23,7 @@ contalign.txt : ../src/contalign ${sample.bam} $(addsuffix .bwt,${reference_UniV
 	../src/samtools-${samtools.version}/samtools view -c test.bam
 
 ${sample.bam} : 
-	wget -O - ${WGETFLAGS} "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/data/HG00096/exome_alignment/HG00096.chrom20.ILLUMINA.bwa.GBR.exome.20120522.bam" |\
+	wget -O - ${wgetFLAGS} "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/data/HG00096/exome_alignment/HG00096.chrom20.ILLUMINA.bwa.GBR.exome.20120522.bam" |\
 	../src/samtools-${samtools.version}/samtools view -h - | head -n 50000 |\
 	../src/samtools-${samtools.version}/samtools view -Sb -o $@ -
 
@@ -36,7 +36,7 @@ test1: 	../src/contalign $(addsuffix .bwt,${reference_UniVec}) ${sample.bam}
 
 test2: 	../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	cat ${sample.bam} |\
-	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 |  $< -r ${reference} -o test.txt > /dev/null
+	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 | $< -r ${reference} -o test.txt > /dev/null
 	stat test.txt
 	@echo -n "sample name + number of unmapped read : " 
 	cat test.txt
@@ -60,7 +60,7 @@ ${reference_UniVec} :
 $(addsuffix .bwt,${reference}): ${reference}
 	../src/bwa-${bwa.version}/bwa index $<
 
-$(reference.fa):
+${reference}:
 	wget -O - "${EFETCH}?db=nucleotide&id=730966571&rettype=fasta" > $@  # gi|730966571|ref|NC_025822.1| Vibrio phage phi-A318, complete genome
 	wget -O - "${EFETCH}?db=nucleotide&id=593776974&rettype=fasta" >> $@ # gi|593776974|ref|NC_023715.1| Yersinia phage Yep-phi, complete genome
 	wget -O - "${EFETCH}?db=nucleotide&id=593777399&rettype=fasta" >> $@ # gi|593777399|ref|NC_023718.1| Pseudomonas phage phi_Pto-bp6g, complete genome
