@@ -41,13 +41,11 @@ THE SOFTWARE.
 
  	
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
-	
-#define EXIT EXIT_FAILURE;
-									
-#define DUMP_FASTQ if ( file_fastq != NULL) {\
+						
+#define DUMP_FASTQ if ( app->file_fastq != NULL) {\
 		   for (i=0; i < fastq_count; i++)\
 			{\
-			fprintf(file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
+			fprintf(app->file_fastq, "@%s%s\n%s\n+\n%s\n", fastq[i].qname, fastq[i].read, fastq[i].seq, fastq[i].qual);\
 			}\
 		   } else \
 			{\
@@ -97,6 +95,7 @@ static void usage ()
 
 
 
+
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx)
 {
 	int i=0, n=0, len=0, j=0;
@@ -131,8 +130,9 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, i
 				VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
 				contaminant[*count_contaminants].contaminants_count=1;
 				searchContaminant=&contaminant[*count_contaminants];
-				*count_contaminants=*count_contaminants+1;
+				*count_contaminants=*count_contaminants+1;	
 			}
+			
 		}
 	// free memory allocated
 	free(fastq[n].qname);
@@ -144,7 +144,10 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, i
 return contaminant;
 }
 
-static void runAppl(Contalign app, const char *filename_in, char *filename_out, FILE* file_fastq, bwaidx_t *idx, FILE* file, FILE*  full_report )
+
+
+
+static void runAppl(ContalignPtr app)
 	{
 	int i=0, sample_count=0, group_count=0, fastq_count=0, count_contaminants=0 ;
 	bam_hdr_t *header=NULL;
@@ -161,18 +164,18 @@ static void runAppl(Contalign app, const char *filename_in, char *filename_out, 
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
 	
-	fprintf(stderr,"Reading from %s..\n",(filename_in!=NULL? filename_in : "<<stdin>>"));DEBUG;
-	app.fp = sam_open( filename_in!=NULL? filename_in : "-" ); DEBUG;
-	if (app.fp == NULL) 
+	fprintf(stderr,"Reading from %s..\n",(app->filename_in!=NULL? app->filename_in : "<<stdin>>")); 
+	app->fp = sam_open( app->filename_in!=NULL? app->filename_in : "-" );  
+	if (app->fp == NULL) 
 		{
 		fprintf(stderr,"Cannot read file \"%s\". %s.\n",
-			(filename_in!=NULL? filename_in : "<<stdin>>"),
+			(app->filename_in!=NULL? app->filename_in : "<<stdin>>"),
 			strerror(errno)
 			);
 		exit(EXIT_FAILURE);
 		}
 
-	header = sam_hdr_read(app.fp); //read and copy header of initial BAM file
+	header = sam_hdr_read(app->fp); //read and copy header of initial BAM file
 
 		if( header == NULL)
 			{
@@ -180,9 +183,9 @@ static void runAppl(Contalign app, const char *filename_in, char *filename_out, 
 			exit(EXIT_FAILURE);
 			}
 
-	app.out_file = samopen((filename_out!=NULL? filename_out : "-"), "wb", header );  //create the output BAM file with the initial header
+	app->out_file = samopen((app->filename_out!=NULL? app->filename_out : "-"), "wb", header );  //create the output BAM file with the initial header
 	
-		if (app.out_file == NULL) 
+		if (app->out_file == NULL) 
 			{
 			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
 			exit(EXIT_FAILURE);
@@ -243,7 +246,7 @@ static void runAppl(Contalign app, const char *filename_in, char *filename_out, 
 
 	qsort( group, group_count, sizeof(Group), compareGroup);  //sort Read Group in alphabetical order 
 
-	while(sam_read1(app.fp, header, b) >= 0) // read each reads of BAM file
+	while(sam_read1(app->fp, header, b) >= 0) // read each reads of BAM file
 	{ 
 		nReads++;
 		if ( (b->core.flag & BAM_FUNMAP ) ) //detect unmapped reads
@@ -328,37 +331,42 @@ static void runAppl(Contalign app, const char *filename_in, char *filename_out, 
            		
 			res->sample->fastq = fastq;
 			
+
 			free(buf);
 			fastq_count++;	
 
 			if(fastq_count == 1000)  
 				{
 				DUMP_FASTQ; // Write fastq file
-				contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, idx); //mapping unmapped reads against reference of contaminants
+				contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, app->idx); //mapping unmapped reads against reference of contaminants
 				fastq_count=0;
-				}		
+				}
+			 
+			if ( app->full_report != NULL ) {
+				fprintf(app->full_report, "%s \t %d \t %s \t %s \t %s\n ", res->sample->sample_name, b->core.flag, res->sample->fastq->qname, res->sample->fastq->seq, res->sample->fastq->qual );
+				}			
 			}
-		samwrite(app.out_file, b); // Write read in the output file
+		samwrite(app->out_file, b); // Write read in the output file
 	}
 	
         //write and mapping the latest reads
 	DUMP_FASTQ; 
-	contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, idx); 
+	contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, app->idx); 
 
-	DEBUG;
+	 
 	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant); //sort the contaminants in descending order
 	
 	// Write the report containing number of unmapped reads by sample and potential contaminants
 	for(i=0;i< sample_count;++i)
-		fprintf(file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
+		fprintf(app->file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
 	for(i=0;i< count_contaminants;++i)
 		{
 		pourcent = (contaminant[i].contaminants_count / nReads)*100;
-		fprintf(file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
+		fprintf(app->file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
 		}
 
-	sam_close(app.fp);
-	samclose(app.out_file);
+	sam_close(app->fp);
+	samclose(app->out_file);
 	for (i=0; i<count_contaminants; i++)
 		{
 		free(contaminant[i].c_name);
@@ -382,16 +390,71 @@ static void runAppl(Contalign app, const char *filename_in, char *filename_out, 
 }
 
 
+
+
+static void OpenFile(ContalignPtr app) 
+	{
+	if (app->filename_fastq != NULL) //open the fastq file, if option "save" is indicated 
+		{
+		app->file_fastq=fopen(app->filename_fastq,"w+");
+		if ( app->file_fastq == NULL) 
+ 			{
+		      	fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
+		      	exit(EXIT_FAILURE);
+	      	 	}     	 	
+		}		
+			
+	if (app->namefull_report != NULL) //open the full report, if option "full_report" is indicated
+			{
+			app->full_report =fopen(app->namefull_report ,"w+");
+			if (app->full_report  == NULL) 
+ 				{
+		      	 	fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
+		      	 	exit(EXIT_FAILURE);
+	      	 		}     	 	
+			}
+
+	if(app->ref == NULL) {
+		fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
+		exit(EXIT_FAILURE);
+	} else { 
+		app->idx = bwa_idx_load(app->ref, BWA_IDX_ALL); // load the BWA index
+		if (NULL == app->idx) {
+			fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	}	
+
+	 if (app->output_report != NULL) {
+	 	app->file=fopen(app->output_report,"w");
+		if ( app->file == NULL)
+			{
+			fprintf(stderr,"Cannot write file. %s.\n",strerror(errno));
+			exit(EXIT_FAILURE);
+			} 
+	}
+	
+}
+
+
+static ContalignPtr ContalignNew()
+	{
+	return malloc(sizeof(Contalign)) ;
+	}
+	
+static void ContalignRelease(ContalignPtr app)
+	{
+	bwa_idx_destroy(app->idx);
+	fclose(app->file);	
+	if (app->file_fastq != NULL) fclose(app->file_fastq);
+	if (app->full_report != NULL) fclose (app->full_report);
+	free(app);
+	}
+
 int main(int argc, char** argv)
 	{
-	struct Contalign *app=NULL;
-	FILE* file = NULL;
-	FILE* file_fastq=NULL;
-	FILE* full_report=NULL;
-	int i=0, c=0;
-	const char *filename_fastq = NULL, *filename_in=NULL, *namefull_report= NULL; 
-	char *output_report=NULL, *filename_out =NULL, *ref=NULL;
-	bwaidx_t *idx;
+	ContalignPtr app = ContalignNew();
+	int c=0;
 
 	// get commande line options
         int option_index = 0;
@@ -407,9 +470,7 @@ int main(int argc, char** argv)
             {0,         0,                 0,  0 }
         };
         
-       i= argc -1;  
-        
-	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:I:", long_options, &option_index)) != -1) {
+	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:I:c:", long_options, &option_index)) != -1) {
 
 		 switch(c) {
 
@@ -417,17 +478,17 @@ int main(int argc, char** argv)
 			
 			case 'v': version (); return EXIT_SUCCESS; break;
 			 
-			case 'o': output_report = optarg; break;
+			case 'o': app->output_report = optarg; break;
 			
-			case 'I': filename_in = optarg; break;
+			case 'I': app->filename_in = optarg; break;
 
-			case 's': filename_fastq = optarg; break;
+			case 's': app->filename_fastq = optarg; break;
 				
-			case 'r': ref = optarg; break;
+			case 'r': app->ref = optarg; break;
 
-			case 'O': filename_out = optarg; break;
+			case 'O': app->filename_out = optarg; break;
 			
-			case 'c': namefull_report = optarg; break;
+			case 'c': app->namefull_report = optarg; break;
 			 
 			case '?': fprintf(stderr, "ERROR: option -%c is undefined\n", optopt); return EXIT_FAILURE; break;
 			
@@ -437,71 +498,31 @@ int main(int argc, char** argv)
 			
 			
 		}
-	i=i-2;
 	}
 	
-
-	if (filename_fastq != NULL) //open the fastq file, if option "save" is indicated 
-			{
-			file_fastq=fopen(filename_fastq,"w+");
-			if ( file_fastq == NULL) 
- 				{
-		      	 	fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
-		      	 	return EXIT_FAILURE;
-	      	 		}     	 	
-			}		
+	OpenFile(app) ; 
 	
-	if (namefull_report != NULL) //open the full report, if option "full_report" is indicated
-			{
-			full_report =fopen(namefull_report ,"w+");
-			if (full_report  == NULL) 
- 				{
-		      	 	fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
-		      	 	return EXIT_FAILURE;
-	      	 		}     	 	
-			}	
-
-	if(ref == NULL) {
-		fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
-		exit(EXIT_FAILURE);
-	} else { 
-		idx = bwa_idx_load(ref, BWA_IDX_ALL); // load the BWA index
-		if (NULL == idx) {
-			fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
-			exit(EXIT_FAILURE);
-		}
-	}	
-	
-	 if (output_report != NULL) {
-	 	file=fopen(output_report,"w");
-		if ( file == NULL)
-			{
-			fprintf(stderr,"Cannot write file. %s.\n",strerror(errno));
-			return EXIT_FAILURE;
-			} 
-	}
-	
-
-	if (i == 1) 
-		{ 
-		filename_in = argv[argc-1];
-		runAppl(app[i], filename_in, filename_out, file_fastq, idx, file, full_report);
-		} 
-		
-	if (i > 1 )
+	if(optind==argc) // if option "--inputfile"
 		{
-		while ( i != 0 ) {
-			filename_in = argv[argc-i];
-			runAppl(app[i], filename_in, filename_out, file_fastq, idx, file, full_report);
-			i=i-1;
+		runAppl(app);	
+		}
+	else if(optind+1==argc) // only one BAM file or ".list" file 
+		{
+		app->filename_in=argv[optind];
+		runAppl(app);
+		}
+	else
+		{
+		// list of BAM files
+		while(optind<argc)
+			{
+			app->filename_in=argv[optind];
+			runAppl(app);
+			++optind;
 			}
-	}
+		}
 	
-	
-        // Close files, free and return
-        fclose(file);	
-	bwa_idx_destroy(idx);
-	if (file_fastq != NULL) fclose(file_fastq);
+	ContalignRelease(app);    
 	
 	
 return EXIT_SUCCESS;
