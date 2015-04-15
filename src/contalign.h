@@ -32,7 +32,7 @@ typedef struct Contalign
 	{
 	samFile *fp; /* initial BAM file */
 	samfile_t *out_file; /* final BAM file */
-	const char* filename_in; /* name of initial BAM file */
+	char* filename_in; /* name of initial BAM file */
 	char* filename_out; /* name of final BAM file */
 	FILE* file_fastq; /* Fastq file with unmapped read */
 	char* filename_fastq; /* name of fastq file */
@@ -48,6 +48,7 @@ typedef struct Contalign
 typedef struct Contaminants
 	{
 	char* c_name; /* name of contaminant ex: E.coli */
+	int score;
 	float contaminants_count; 
 	}Contaminants;
 	
@@ -78,7 +79,12 @@ typedef struct Group
  	}Group;
  	
  	
+void runAppl(ContalignPtr app);
+void OpenFile(ContalignPtr app);
+int compareGroup(const void *g1, const void *g2);
+int compareContaminant(const void *c1, const void *c2);
 
+#define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
 /* map unmapped reads against a reference of contaminants */
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx);

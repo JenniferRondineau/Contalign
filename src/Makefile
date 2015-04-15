@@ -15,10 +15,13 @@ libraries=${bwa.dir}/libbwa.a ${samtools.dir}/libbam.a ${htslib.dir}/libhts.a
 
 all: contalign  
 
-contalign : contalign.o $(libraries)
-	${CC} -o $@  ${LDFLAGS} $^ ${sam.libs} 
+contalign : contalign.o runcontalign.o $(libraries)
+	${CC} -o $@ ${DFLAGS} $^ ${sam.libs} 
 
 contalign.o : contalign.c contalign.h debug.h $(libraries)
+	${CC} -c -o $@ ${CFLAGS} $< 
+
+runcontalign.o : runcontalign.c contalign.h debug.h $(libraries)
 	${CC} -c -o $@ ${CFLAGS} $< 
 
 ${bwa.dir}/libbwa.a:
