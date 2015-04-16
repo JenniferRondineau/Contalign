@@ -58,9 +58,9 @@ typedef struct Fastq
 	char* read; /* "/1" forward reads ; "/2" reverse reads */
 	char* seq; /* sequence */ 
 	char* qual; /* the quality values for the sequence */
-	Contaminants* contaminant;
-	int score;
-	int original_BAMFLAG;
+	Contaminants* contaminant; /*contaminant associated with this fastq */
+	int score; /* mapping score */
+	int original_BAMFLAG; /* original BAM flag of the read */
 	}Fastq;
 
 /* Sample structure */ 

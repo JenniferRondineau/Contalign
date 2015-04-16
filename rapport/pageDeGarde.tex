@@ -1,58 +1,48 @@
-\makeatletter
- 
-\def\clap#1{\hbox to 0pt{\hss #1\hss}}
-\def\haut#1#2#3{
-\hbox to \hsize{
-\rlap{\vtop{\raggedright #1}}
-\hss
-\clap{\vtop{\centering #2}}
-\hss
-\llap{\vtop{\raggedleft #3}}
-}
-}
-\def\bas#1#2#3{
-\hbox to \hsize{
-\rlap{\vbox{\raggedright #1}}
-\hss
-\clap{\vbox{\centering #2}}
-\hss
-\llap{\vbox{\raggedleft #3}}
-}
-}
-\def\maketitle{
-\thispagestyle{empty}\vbox to \vsize{
-\haut
-{
-Université de Nantes\\
-UFR Sciences et Techniques\\
-Master 1 Bioinformatique-Biostatiques
-Maître de stage : Pierre Lindenbaum\\
-Tuteur pédagogique : Christine Sinoquet 
-}{}{}
-\vfill
-\vspace{1cm}
-\begin{flushleft}
-\usefont{OT1}{ptm}{m}{n}
-\huge \@title
-\end{flushleft}
-\par \hrule height 3pt \par % barre + sauts de ligne
-\begin{flushright}
-\usefont{OT1}{phv}{m}{n}
-\Large \@author
-\par
-\end{flushright}
-\vspace{1cm}
-\vfill
-\vfill
-\bas{logo iut} % {\includegraphics[height=2cm]{./docs/logoIut.png}}
-{Blagnac, le \@date}
-{logo ent} % {\includegraphics[height=2cm]{./docs/logoEntreprise.jpg}}
-}
-\cleardoublepage
-}
-\def\date#1{\def\@date{#1}}
-\def\author#1{\def\@author{#1}}
-\def\title#1{\def\@title{#1}}
-\makeatother
- 
-\maketitle{} 
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+\newcommand{\hsp}{\hspace{20pt}}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\begin{titlepage}
+  \begin{sffamily}
+  \begin{center}
+
+    % Upper part of the page. The '~' is needed because \\
+    % only works if a paragraph has started.
+    \includegraphics[scale=0.2]{logo.jpg}~\\[1.5cm]
+
+    \textsc{\LARGE Université de Nantes}\\
+    \textsc{\LARGE  }\\
+    \textsc{\Large UFR Sciences et Techniques}\\[1.5cm]
+
+    % Title
+    \HRule \\[0.4cm]
+    { \huge \bfseries Rapport de stage\\[0.4cm]
+     }
+     \begin{center}
+		Détection d'éventuels contaminants dans des données NGS à l'aide d'un programme en C utilisant l'interface de programmation de BWA.
+	\end{center}
+    \HRule \\[0.4cm]
+
+    % Author and supervisor
+    
+      \begin{center} \large
+       Jennifer \textsc{Rondineau}\\
+       Master 1 Bioinformatique / Biostatistique \\
+      \end{center}
+      \begin{center} \large
+		\emph{Maître de stage} : Pierre \textsc{Lindenbaum}\\
+		Institut du Thorax\ \\[1.5]
+		\includegraphics[scale=1.5]{institut.jpg}\\[1.5]
+      \end{center}
+      \begin{center} \large
+		\emph{Tuteur pédagogique} : Christine \textsc{Sinoquet} \\
+      \end{center}
+
+    \vfill
+
+    % Bottom of the page
+    {\large 16 mars 2015 — 7 mai 2015}
+
+  \end{center}
+  \end{sffamily}
+\end{titlepage}

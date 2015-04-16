@@ -1,13 +1,11 @@
-\documentclass[a4paper,french,10pt]{memoir}
-\usepackage[utf8]{inputenc} % encodage
-\usepackage[french]{babel} % pour le francais
-\usepackage{color,xcolor,listings} % utile pour les bouts de code insérés
-\usepackage{hyperref} % pour les liens dans le pdf (sommaire clickable par exemple ;)
-\usepackage{graphicx} % pour les images
-\usepackage{lmodern} % pour les fonts
-\usepackage[babel=true]{csquotes} % csquotes va utiliser la langue définie dans babel pour les quotes francaises
- 
- 
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc} 
+\usepackage[french]{babel}
+\usepackage{graphicx} 
+\usepackage{lmodern} 
+\usepackage{cite}
+
+
 % infos du document
 \title{Rapport de Stage}
 \author{Jennifer Rondineau}
@@ -15,56 +13,87 @@
 \begin{document}
  
 \input{pageDeGarde.tex} % page de garde
-\frontmatter % introduction
-\chapter{Introduction}
-\paragraph{}
-Titre du stage : Détection d'éventuels contaminants dans des données NGS à l'aide d'un programme en C utilisant l'interface de programmation de BWA. \\
 
-Résumé : 
-Dans le cadre d'analyse de génome / exome en NGS (Nouvelle génération de séquençage à haut débit), notre objectif était de créer un outil en C permettant d'identifier à l'intérieur d'un fichier BAM, les reads non mappés sur le génome humain, et de tenter de les identifier sur d'éventuels contaminants (organismes etrangers tel que par exemple des phages phi-X, E. Coli...). Cet outil crée prend en entrée des fichiers BAM, et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant divers contaminants possibles. Il en sort un rapport du nombre de reads non mappés sur le génome humain par échantillon, ainsi qu'un rapport des reads mappés sur la référence des contaminants. Afin de pouvoir lire et traiter les informations dans les fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé l'aligneur BWA. 
-
-mots clés : NGS, BAM, BWA, samtools, contaminants. 
- 
 \clearpage % mettre le sommaire sur une nouvelle page
-\setcounter{tocdepth}{1} % définir la profondeur de l'Index, 1 == Partie + Sous Parties
-\renewcommand{\contentsname}{Sommaire} % renommer la "Tables des matières" en "Sommaire"
+\renewcommand{\contentsname}{Sommaire} 
 \tableofcontents{} % afficher l'index
-% penser a caler les parties dans differents fichiers ;)
- 
-\mainmatter % partie principale du document
-\chapter{Contexte biologique}
+\clearpage
+
+\section{Introduction}
+
+\section{Principe du séquençage à haut débit}
+
+\section{Les différents formats de fichiers}
+
+\subsection{FASTA}
+Le format fasta est le format le plus simple pour stocker et lire les séquences. Il est composé d'une première ligne comportant un "$>$" suivit par le nom de la séquence. Les lignes suivantes ne contiennent que l'enchainement des nucléotides. 
+
+Exemple : \\
+$>$ SRR070516.21004915 \\
+GTAGGGAAAGAGTGTAGATCTCGGGGGTCGCCGTATCATTAAAAA \\
+CGCCGGGGAAAGGTATGGAAAGCATTAAAGAGTGTAGATCTCGAA \\
+GTAGCGCCGTAGGAAAGAGTGTAAAAGGGGGGTTCATTAAATCTC 
+
+
+\subsection{FASTQ}
+
+Le format FASTQ est un format texte issu du format fasta. Il comporte 4 lignes par séquence : \\
+- Une ligne comportant un @ pour l'identifiant de la séquence, \\
+   - la séquence,  \\
+   - une ligne débutant par "+" parfois suivi de l’identifiant, \\
+   - les scores de qualité associé à chacune des bases. \\\\
+Exemple : \\
+@SRR070516.21004915/2 \\
+GTAGGGAAAGAGTGTAGATCTCGGGGGTCGCCGTATCATTAAAAA \\
++ \\
+3CGCGLDLA76@9BA?$>$=BC=$>$A@GLD3@79$>$=0=B9476@$>$= \\
+
+il existe des fichiers "single", et "paired-end". dans le fichier single, les reads vont tous dans le même sens. Alors que dans le fichier paired-end, les reads vont dans les deux sens (forward et reverse), cette information est indiquée dans le nom de la séquence, à la fin "/1" = forward et "/2" = reverse.
+
+Le score de qualité associé à chacune des bases est codé en code ASCII, qui est une échelle de corrélation de symboles, manière de représenter la qualité en un seul symbole.
+\\
+
+\subsection{Le fichier de mapping SAM}
 \paragraph{}
+Le format SAM (Sequence Alignement/Map) est un fichier texte comportant deux parties : \\
+- une partie entête optionnelle \\
+- une partie alignement\\
+L'entête, si elle est présente, doit obligatoirement être placée avant la partie alignement. Chaque ligne de la partie entête commence par le symbole "@", c'est ce qui la différencie de la partie alignement. 
+
+Chaque ligne d'alignement est constituée de 11 colonnes minimum, comportant des informations essentielles sur la qualité de l'alignement.   
 
 
 
-\section{Sous Partie }
+
+
+
+Cette étape consiste à placer les paires ou singles du fichier FASTQ sur une séquence de référence, dans notre cas le génome humain. Le logiciel d'alignement bwa place toutes les positions potentielles du forward et du reverse et choisi ensuite la meilleur position possible. C'est à dire que le forward et le reverse doivent se faire face et ils doivent également être séparé d'environ 300 bases  : illustration. 
+\subsection{le fichier BAM}
 \paragraph{}
-...
-\paragraph{}
-...
- 
- 
-\chapter{2\ieme ~partie}
-\section{Sous Partie 1}
-\paragraph{}
-...
-\paragraph{}
-...
-\section{Sous Partie 2}
-\paragraph{}
-...
+Le fichier BAM correspond à la forme compressée du fichier SAM. Le fichier BAM n'est pas lisible et comporte des données binaires. La conversion du format SAM vers le format BAM est possible grâce au logiciel Samtools. 
+ \\
+\section{Le programme Contalign}
 \paragraph{}
 
+
+\\
+\subsection{Les arguments d'entrées du programme}
 \paragraph{}
-...
+
+\\
+\section{Choix des références de contaminants}
+
+\\
+\section{Test du programme sur les données du laboratoires}
+
+
+
+\section{Conclusion}
 \paragraph{}
-...
- 
- 
-\backmatter % fin
-\chapter{Conclusion}
-\paragraph{}
- ...
-\listoffigures % index des illustrations
-\appendix % annexes
+
+
+\textsc{\large Références :}\\[1.5cm]
+
+ \bibliography{mybib}
+ \bibliographystyle{plain}
 \end{document} 

@@ -4,7 +4,6 @@ The MIT License (MIT)
 
 Copyright (c) 2015 Jennifer Rondineau
 
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -42,7 +41,7 @@ THE SOFTWARE.
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
 
-						
+/* write fastq in file_fastq */ 						
 #define DUMP_FASTQ if ( app->file_fastq != NULL) {\
 		   for (i=0; i < fastq_count; i++)\
 			{\
@@ -88,7 +87,7 @@ void OpenFile(ContalignPtr app)
 	}	
 
 	 if (app->output_report != NULL) {
-	 	app->file=fopen(app->output_report,"w");
+	 	app->file=fopen(app->output_report,"w"); // open the report of unmapped reads and contaminants
 		if ( app->file == NULL)
 			{
 			fprintf(stderr,"Cannot write file. %s.\n",strerror(errno));
@@ -115,10 +114,16 @@ int compareContaminant(const void *c1, const void *c2)
 	return contaminant2->contaminants_count - contaminant1->contaminants_count; //sort contaminants in descending order
 }
 
+int compareNameContaminant(const void *c1, const void *c2)
+{
+	Contaminants *contaminant1 = (Contaminants *) c1;
+	Contaminants *contaminant2 = (Contaminants *) c2;
+	return strcmp (contaminant1->c_name, contaminant2->c_name); //sort contaminants in alphabetical order
+}
 
 Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, int fastq_count, int *count_contaminants, int sample_count, ContalignPtr app)
 {
-	int i=0, n=0, len=0, j=0, k=0, sample=0;
+	int i=0, n=0, len=0, sample=0;
 	mem_opt_t *opt;
 	bwaidx_t *idx = app->idx;
 	opt = mem_opt_init(); // initialize the BWA-MEM parameters to the default values
@@ -130,44 +135,60 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);  // get all the hits
 			for (i = 0; i < ar.n; ++i) // traverse each hit
 			{
+				
 				mem_aln_t a;
 				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
 				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
-				printf("%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
-				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
-					printf("%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
-					printf("\n");
-				free(a.cigar); // deallocate CIGAR
-				Contaminants* searchContaminant = NULL;
-				if (fastq[n].score < a.score ) 
-					{	
-					for (j=0; j< *count_contaminants; j++) 
-						{      // search if the contaminant is already registered
 				
-							if (strcmp (contaminant[j].c_name, idx->bns->anns[a.rid].name) == 0)
-							{
-								searchContaminant = &contaminant[j];
-								contaminant[j].contaminants_count++;
-								break;
-							}
-						}
-					if (searchContaminant == NULL ) 
-						{
-							contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
-							VERIFY_NOT_NULL(contaminant);
-							contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
-							VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
-							contaminant[*count_contaminants].contaminants_count=1;
-							searchContaminant=&contaminant[*count_contaminants];
-							*count_contaminants=*count_contaminants+1;		
-						}
-			
-						fastq[n].contaminant=searchContaminant;
-						fastq[n].score = a.score;
-						if (app->full_report != NULL) { 
-							fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\t\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
-						}
+				/* Example of report can be obtained after alignment :
+				
+				int k=0;
+				fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
+				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
+					fprintf(stderr,"%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
+					fprintf(stderr,"\n");
+				free(a.cigar); // deallocate CIGAR
+				
+				*/
+				
+				qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order
+				Contaminants key;
+				key.c_name=idx->bns->anns[a.rid].name;
+				Contaminants* searchContaminant = NULL;
+				struct Contaminants *res; 
+				res = bsearch(    // search if the contaminant is already registered
+					&key,
+					contaminant,
+					*count_contaminants, 
+					sizeof(Contaminants),
+					compareNameContaminant
+					);
+				if (fastq[n].score < a.score ) //compare if this read has been previously mapped to another contaminant
+					{	
+
+					if (res != NULL) { // if the contaminant is already registered 
+						searchContaminant = res;
+						res->contaminants_count++; 
+						break;
 					}
+					else {   // if the contaminant isn't registered 
+						contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
+						VERIFY_NOT_NULL(contaminant);
+						contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
+						VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
+						contaminant[*count_contaminants].contaminants_count=1;
+						searchContaminant=&contaminant[*count_contaminants];
+						*count_contaminants=*count_contaminants+1;		
+					}
+			
+				fastq[n].contaminant=searchContaminant;
+				fastq[n].score = a.score;
+				
+				//write the full report, if option "full_report" is indicated
+				if (app->full_report != NULL) { 
+					fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\t\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
+					}
+				}
 			}
 
 		// free memory allocated
@@ -177,7 +198,6 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 		free(ar.a);
 		}
 	}
-	
 	free(opt);
 return contaminant;
 }
@@ -201,8 +221,8 @@ void runAppl(ContalignPtr app)
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
 	
-	fprintf(stderr,"Reading from %s..\n",(app->filename_in!=NULL? app->filename_in : "<<stdin>>")); 
-	app->fp = sam_open( app->filename_in!=NULL? app->filename_in : "-" );  
+	fprintf(stderr,"Reading from %s...\n",(app->filename_in!=NULL? app->filename_in : "<<stdin>>")); // message indicating the name of the file read
+	app->fp = sam_open( app->filename_in!=NULL? app->filename_in : "-" );  // opening bam file
 	if (app->fp == NULL) 
 		{
 		fprintf(stderr,"Cannot read file \"%s\". %s.\n",
@@ -406,7 +426,7 @@ void runAppl(ContalignPtr app)
 		}
 
 
-
+	// Close files, free and return
 	sam_close(app->fp);
 	samclose(app->out_file);
 	for (i=0; i<count_contaminants; i++)

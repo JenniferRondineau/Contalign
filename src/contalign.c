@@ -76,7 +76,7 @@ static ContalignPtr ContalignNew()
 	
  
 
-static void ContalignRelease(ContalignPtr app)
+static void ContalignRelease(ContalignPtr app)  // Close files, free 
 	{
 	bwa_idx_destroy(app->idx);
 	fclose(app->file);	
@@ -90,6 +90,7 @@ int main(int argc, char** argv)
 	{
 	
 	ContalignPtr app = ContalignNew();
+	char *type;
 
 	// get commande line options
 	int c=0, option_index = 0;
@@ -144,8 +145,24 @@ int main(int argc, char** argv)
 		}
 	else if(optind+1==argc) // only one BAM file or ".list" file 
 		{
-		app->filename_in=argv[optind];
-		runAppl(app);
+		app->filename_in=argv[optind]; 
+		type = strpbrk(argv[optind], ".");
+		if (strcmp(type,".list")==0) { // search if the file format is ".list"
+			FILE* list;
+			char path[50];
+			list=fopen(app->filename_in,"r"); //open file for reading
+			if ( list == NULL) {
+		      		fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
+		      		exit(EXIT_FAILURE);
+	      	 	}
+	      	 	while(fscanf(list, "%s", path) != EOF) // read line by line
+            			{ 	   			
+            			app->filename_in=path;
+            			runAppl(app); 
+            			}	
+            		fclose(list);
+		} else runAppl(app);
+
 		}
 	else
 		{
@@ -158,7 +175,7 @@ int main(int argc, char** argv)
 			}
 		}
 	
-	ContalignRelease(app);    
+	ContalignRelease(app);  // Close files, free 
 	
 	
 return EXIT_SUCCESS;

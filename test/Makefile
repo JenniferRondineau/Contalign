@@ -29,23 +29,26 @@ ${sample.bam} :
 
 test1: 	../src/contalign $(addsuffix .bwt,${reference_UniVec}) ${sample.bam}
 	cat ${sample.bam} |\
-	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 |  $< -r ${reference_UniVec} -o test.txt > /dev/null
+	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 |  $< -r ${reference_UniVec} -o test.txt -c fullreport.txt > /dev/null
 	@stat test.txt
 	@echo -n "sample name + number of unmapped read : " 
 	@tail test.txt | grep "HG" 
+	@cat test.txt
+	@cat fullreport.txt
 
 test2: 	../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	cat ${sample.bam} |\
-	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 | $< -r ${reference} -o test.txt > /dev/null
+	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 | $< -r ${reference} -o test.txt -c fullreport.txt > /dev/null
 	@stat test.txt
 	@echo -n "sample name + number of unmapped read : " 
-	@cat test.txt
+	cat test.txt
+	cat fullreport.txt
 	
 test3: ../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	$< -r ${reference} -o test.txt -s save.fastq -c fullreport.txt sample.bam > /dev/null
 	@stat test.txt
-	@cat test.txt
-	@tail fullreport.txt
+	cat test.txt
+	tail fullreport.txt
 		
 test_version: ../src/contalign
 	$< -v
@@ -67,7 +70,7 @@ $(addsuffix .bwt,${reference}): ${reference}
 	../src/bwa-${bwa.version}/bwa index $<
 
 ${reference}:
-	wget -O $(addsuffix .tmp,$@) "${EFETCH}?db=nucleotide&id=108885074,127763381,13507739,148377268,15828471,193082772,21326584,240047135,26553452,269114774,281306659,291319937,294155300,294660180,304372805,308189587,313664890,313678134,319776738,319801362,325972867,325989358,330370665,331028054,331703020,339320528,344204770,358356470,430768498,47118301,47458835,479336529,526118307,54019969,593776974,593777399,6572414,71893359,71894025,72080342,730966571,83319253,90592637,9628880,9629357&rettype=fasta" && \
+	ftp_proxy=cache.ha.univ-nantes.fr:3128 wget -O $(addsuffix .tmp,$@) "${EFETCH}?db=nucleotide&id=108885074,127763381,13507739,482889214,374352002,749202356,44454,148342,148377268,15828471,751266762,749295773,397655102,193082772,21326584,240047135,26553452,269114774,281306659,291319937,294155300,294660180,304372805,308189587,313664890,313678134,319776738,319801362,325972867,325989358,330370665,331028054,331703020,339320528,344204770,358356470,430768498,47118301,47458835,479336529,526118307,54019969,593776974,593777399,6572414,71893359,71894025,730966571,83319253,90592637,9628880,9629357&rettype=fasta" && \
 	mv  $(addsuffix .tmp,$@) $@
 	
 
