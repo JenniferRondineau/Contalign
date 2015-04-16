@@ -48,7 +48,6 @@ typedef struct Contalign
 typedef struct Contaminants
 	{
 	char* c_name; /* name of contaminant ex: E.coli */
-	int score;
 	float contaminants_count; 
 	}Contaminants;
 	
@@ -60,6 +59,8 @@ typedef struct Fastq
 	char* seq; /* sequence */ 
 	char* qual; /* the quality values for the sequence */
 	Contaminants* contaminant;
+	int score;
+	int original_BAMFLAG;
 	}Fastq;
 
 /* Sample structure */ 
@@ -87,7 +88,7 @@ int compareContaminant(const void *c1, const void *c2);
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
 /* map unmapped reads against a reference of contaminants */
-Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx);
+Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, int fastq_count, int *count_contaminants, int sample_count, ContalignPtr app);
 
 
 #define COUNTALIGN_VERSION "0.1"

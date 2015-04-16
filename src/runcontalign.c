@@ -116,63 +116,68 @@ int compareContaminant(const void *c1, const void *c2)
 }
 
 
-Contaminants *align( Fastq* fastq, Contaminants* contaminant, int fastq_count, int *count_contaminants, bwaidx_t *idx)
+Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, int fastq_count, int *count_contaminants, int sample_count, ContalignPtr app)
 {
-	int i=0, n=0, len=0, j=0, k=0;
+	int i=0, n=0, len=0, j=0, k=0, sample=0;
 	mem_opt_t *opt;
+	bwaidx_t *idx = app->idx;
 	opt = mem_opt_init(); // initialize the BWA-MEM parameters to the default values
-	for(n=0; n<fastq_count;n++) 
-	{
-		len= strlen(fastq[n].seq);
-		mem_alnreg_v ar;
-		ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);  // get all the hits
-		for (i = 0; i < ar.n; ++i) // traverse each hit
-		{
-			mem_aln_t a;
-			if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
-			a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
-			fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
-			for (k = 0; k < a.n_cigar; ++k) // print CIGAR
-				fprintf(stderr,"%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
-				fprintf(stderr,"\n");
-			free(a.cigar); // deallocate CIGAR
-		/* lorsqu'un read se mappe sur plusieurs contaminants, tous les contaminants sont enregistrés, pas de sélection sur la qualité du mapping	
-		Possible qu'un read se map sur un même contaminant à différentes positions, il faut faire une selection également à ce moment là */
-			Contaminants* searchContaminant = NULL;
-
-				for (j=0; j< *count_contaminants; j++) 
-				{      // search if the contaminant is already registered
-					if (strcmp (contaminant[j].c_name, idx->bns->anns[a.rid].name) == 0)
-						{
-
-							searchContaminant = &contaminant[j];
-							contaminant[j].contaminants_count++;
-							contaminant[j].score = a.score;
+	for(sample=0;sample< sample_count;++sample) { 
+		for(n=0; n<fastq_count;n++) {
+			fastq[n].score = 0 ;
+			len= strlen(fastq[n].seq);
+			mem_alnreg_v ar;
+			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);  // get all the hits
+			for (i = 0; i < ar.n; ++i) // traverse each hit
+			{
+				mem_aln_t a;
+				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
+				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
+				printf("%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
+				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
+					printf("%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
+					printf("\n");
+				free(a.cigar); // deallocate CIGAR
+				Contaminants* searchContaminant = NULL;
+				if (fastq[n].score < a.score ) 
+					{	
+					for (j=0; j< *count_contaminants; j++) 
+						{      // search if the contaminant is already registered
 				
-						break;
+							if (strcmp (contaminant[j].c_name, idx->bns->anns[a.rid].name) == 0)
+							{
+								searchContaminant = &contaminant[j];
+								contaminant[j].contaminants_count++;
+								break;
+							}
 						}
-				}
-				if (searchContaminant == NULL ) 
-				{
-					contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
-					VERIFY_NOT_NULL(contaminant);
-					contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
-					VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
-					contaminant[*count_contaminants].contaminants_count=1;
-					contaminant[*count_contaminants].score=a.score;
-					searchContaminant=&contaminant[*count_contaminants];
-					*count_contaminants=*count_contaminants+1;		
-				}
+					if (searchContaminant == NULL ) 
+						{
+							contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
+							VERIFY_NOT_NULL(contaminant);
+							contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
+							VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
+							contaminant[*count_contaminants].contaminants_count=1;
+							searchContaminant=&contaminant[*count_contaminants];
+							*count_contaminants=*count_contaminants+1;		
+						}
+			
+						fastq[n].contaminant=searchContaminant;
+						fastq[n].score = a.score;
+						if (app->full_report != NULL) { 
+							fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\t\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
+						}
+					}
+			}
 
-			fastq[n].contaminant = searchContaminant;
+		// free memory allocated
+		free(fastq[n].qname);
+		free(fastq[n].seq);
+		free(fastq[n].qual);
+		free(ar.a);
 		}
-	
-	// free memory allocated
-	free(fastq[n].qname);
-	free(fastq[n].seq);
-	free(fastq[n].qual);
-	free(ar.a);
 	}
+	
 	free(opt);
 return contaminant;
 }
@@ -361,6 +366,8 @@ void runAppl(ContalignPtr app)
            		fastq[fastq_count].qual = strdup((char*)buf);
            		VERIFY_NOT_NULL(fastq[fastq_count].qual);
            		
+           		fastq[fastq_count].original_BAMFLAG = b->core.flag;
+           		
 			res->sample->fastq = fastq;
 			
 
@@ -370,17 +377,19 @@ void runAppl(ContalignPtr app)
 			if(fastq_count == 1000)  
 				{
 				DUMP_FASTQ; // Write fastq file
-				contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, app->idx); //mapping unmapped reads against reference of contaminants
+				contaminant = align(fastq, contaminant, samples, fastq_count, &count_contaminants, sample_count, app); //mapping unmapped reads against reference of contaminants
 				fastq_count=0;
 				}
-					
+			
+
+				
 			}
 		samwrite(app->out_file, b); // Write read in the output file
 	}
 	
         //write and mapping the latest reads
 	DUMP_FASTQ; 
-	contaminant = align(fastq, contaminant,fastq_count, &count_contaminants, app->idx); 
+	contaminant = align(fastq, contaminant, samples, fastq_count, &count_contaminants, sample_count, app); 
 
 	
 	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant); //sort the contaminants in descending order
@@ -395,6 +404,7 @@ void runAppl(ContalignPtr app)
 		pourcent = (contaminant[i].contaminants_count / nReads)*100;
 		fprintf(app->file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
 		}
+
 
 
 	sam_close(app->fp);

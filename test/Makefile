@@ -30,22 +30,22 @@ ${sample.bam} :
 test1: 	../src/contalign $(addsuffix .bwt,${reference_UniVec}) ${sample.bam}
 	cat ${sample.bam} |\
 	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 |  $< -r ${reference_UniVec} -o test.txt > /dev/null
-	stat test.txt
+	@stat test.txt
 	@echo -n "sample name + number of unmapped read : " 
 	@tail test.txt | grep "HG" 
 
 test2: 	../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	cat ${sample.bam} |\
 	../src/samtools-${samtools.version}/samtools view -h - | head -n 10000 | $< -r ${reference} -o test.txt > /dev/null
-	stat test.txt
+	@stat test.txt
 	@echo -n "sample name + number of unmapped read : " 
-	cat test.txt
+	@cat test.txt
 	
 test3: ../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	$< -r ${reference} -o test.txt -s save.fastq -c fullreport.txt sample.bam > /dev/null
-	stat test.txt
-	cat test.txt
-	cat fullreport.txt
+	@stat test.txt
+	@cat test.txt
+	@tail fullreport.txt
 		
 test_version: ../src/contalign
 	$< -v
