@@ -130,6 +130,7 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 	for(sample=0;sample< sample_count;++sample) { 
 		for(n=0; n<fastq_count;n++) {
 			fastq[n].score = 0 ;
+			
 			len= strlen(fastq[n].seq);
 			mem_alnreg_v ar;
 			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);  // get all the hits
@@ -151,46 +152,48 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 				
 				*/
 				
-				qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order
-				Contaminants key;
-				key.c_name=idx->bns->anns[a.rid].name;
-				Contaminants* searchContaminant = NULL;
-				struct Contaminants *res; 
-				res = bsearch(    // search if the contaminant is already registered
-					&key,
-					contaminant,
-					*count_contaminants, 
-					sizeof(Contaminants),
-					compareNameContaminant
-					);
+
 				if (fastq[n].score < a.score ) //compare if this read has been previously mapped to another contaminant
 					{	
+						
+					Contaminants key;
+					key.c_name=idx->bns->anns[a.rid].name;
 
-					if (res != NULL) { // if the contaminant is already registered 
-						searchContaminant = res;
-						res->contaminants_count++; 
-						break;
-					}
-					else {   // if the contaminant isn't registered 
-						contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
-						VERIFY_NOT_NULL(contaminant);
-						contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
-						VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
-						contaminant[*count_contaminants].contaminants_count=1;
-						searchContaminant=&contaminant[*count_contaminants];
-						*count_contaminants=*count_contaminants+1;		
-					}
+					struct Contaminants *res = NULL; 
+					res = bsearch(    // search if the contaminant is already registered
+						&key,
+						contaminant,
+						*count_contaminants, 
+						sizeof(Contaminants),
+						compareNameContaminant
+						);
+
+						if (res != NULL) { // if the contaminant is already registered 
+							res->contaminants_count++; 
+						}
+						else {   // if the contaminant isn't registered 
+							contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
+							VERIFY_NOT_NULL(contaminant);
+							contaminant[*count_contaminants].c_name = idx->bns->anns[a.rid].name; //Save the new contaminant 
+							VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
+							contaminant[*count_contaminants].contaminants_count=1;
+							res=&contaminant[*count_contaminants];
+							*count_contaminants=*count_contaminants+1;
+							qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order			
+						}
 			
-				fastq[n].contaminant=searchContaminant;
-				fastq[n].score = a.score;
+					fastq[n].contaminant=res;
+					fastq[n].score = a.score;
+					
+				}
 				
 				//write the full report, if option "full_report" is indicated
-				if (app->full_report != NULL) { 
-					fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\t\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
-					}
-				}
-			}
+				if (app->full_report != NULL && fastq[n].score != 0 ) { 
+							fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
 
+				}
+		
+			}
 		// free memory allocated
 		free(fastq[n].qname);
 		free(fastq[n].seq);
