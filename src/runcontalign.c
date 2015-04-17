@@ -41,6 +41,7 @@ THE SOFTWARE.
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
 
 
+
 /* write fastq in file_fastq */ 						
 #define DUMP_FASTQ if ( app->file_fastq != NULL) {\
 		   for (i=0; i < fastq_count; i++)\
@@ -202,6 +203,7 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 		}
 	}
 	free(opt);
+
 return contaminant;
 }
 
@@ -437,7 +439,7 @@ void runAppl(ContalignPtr app)
 		free(contaminant[i].c_name);
 		}
 	free(contaminant);
-
+	
 	for (i=0; i<group_count; i++)
 		{
 		free(group[i].rgId);

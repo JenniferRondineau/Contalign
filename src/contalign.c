@@ -138,7 +138,6 @@ int main(int argc, char** argv)
 	
 	OpenFile(app) ; 
 
-
 	if(optind==argc) // if option "--inputfile"
 		{
 		runAppl(app);	
@@ -149,16 +148,20 @@ int main(int argc, char** argv)
 		type = strpbrk(argv[optind], ".");
 		if (strcmp(type,".list")==0) { // search if the file format is ".list"
 			FILE* list;
-			char path[50];
+			char path[FILENAME_MAX];
+			char* fin="\0";
 			list=fopen(app->filename_in,"r"); //open file for reading
 			if ( list == NULL) {
 		      		fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
 		      		exit(EXIT_FAILURE);
 	      	 	}
-	      	 	while(fscanf(list, "%s", path) != EOF) // read line by line
-            			{ 	   			
+	      	 	while(fgets(path,FILENAME_MAX, list) != 0) // read line by line
+            			{ 	 
+            			if(path[strlen(path) - 1] == '\n')
+            			path[strlen(path) - 1] = '\0';  
+            			if(strcmp(path, fin)==0) break;
             			app->filename_in=path;
-            			runAppl(app); 
+            			runAppl(app);    // probleme au niveau du nom des contaminants dès qu'il y a plus d'un bam a aligner
             			}	
             		fclose(list);
 		} else runAppl(app);
@@ -174,6 +177,7 @@ int main(int argc, char** argv)
 			++optind;
 			}
 		}
+	
 	
 	ContalignRelease(app);  // Close files, free 
 	
