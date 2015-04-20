@@ -52,7 +52,9 @@ THE SOFTWARE.
 			{\
 			fprintf(stderr,"Unsaved fasta file.\n");\
 		   }
+/* write the full report, if option "full_report" is indicated */
 
+#define FULL_REPORT if (app->full_report != NULL) fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual)
 
 void OpenFile(ContalignPtr app) 
 	{
@@ -131,13 +133,11 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 	for(sample=0;sample< sample_count;++sample) { 
 		for(n=0; n<fastq_count;n++) {
 			fastq[n].score = 0 ;
-			
 			len= strlen(fastq[n].seq);
 			mem_alnreg_v ar;
 			ar = mem_align1(opt, idx->bwt, idx->bns, idx->pac, len, fastq[n].seq);  // get all the hits
 			for (i = 0; i < ar.n; ++i) // traverse each hit
 			{
-				
 				mem_aln_t a;
 				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
 				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
@@ -152,7 +152,6 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 				free(a.cigar); // deallocate CIGAR
 				
 				*/
-				
 
 				if (fastq[n].score < a.score ) //compare if this read has been previously mapped to another contaminant
 					{	
@@ -171,27 +170,24 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 
 						if (res != NULL) { // if the contaminant is already registered 
 							res->contaminants_count++; 
-						}
-						else {   // if the contaminant isn't registered 
+							fastq[n].contaminant=res;
+							fastq[n].score = a.score;
+							FULL_REPORT;
+							
+						}else {   // if the contaminant isn't registered 
 							contaminant = (Contaminants*)realloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
 							VERIFY_NOT_NULL(contaminant);
-							contaminant[*count_contaminants].c_name = idx->bns->anns[a.rid].name; //Save the new contaminant 
+							contaminant[*count_contaminants].c_name = strdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
 							VERIFY_NOT_NULL(contaminant[*count_contaminants].c_name);
 							contaminant[*count_contaminants].contaminants_count=1;
 							res=&contaminant[*count_contaminants];
 							*count_contaminants=*count_contaminants+1;
-							qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order			
+							fastq[n].contaminant=res;
+							fastq[n].score = a.score;
+							FULL_REPORT;
+							qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order		
+	
 						}
-			
-					fastq[n].contaminant=res;
-					fastq[n].score = a.score;
-					
-				}
-				
-				//write the full report, if option "full_report" is indicated
-				if (app->full_report != NULL && fastq[n].score != 0 ) { 
-							fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual);	
-
 				}
 		
 			}
@@ -203,7 +199,6 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 		}
 	}
 	free(opt);
-
 return contaminant;
 }
 
