@@ -161,7 +161,7 @@ int main(int argc, char** argv)
             			path[strlen(path) - 1] = '\0';  
             			if(strcmp(path, fin)==0) break;
             			app->filename_in=path;
-            			runAppl(app);    // probleme au niveau du nom des contaminants dès qu'il y a plus d'un bam a aligner
+            			runAppl(app);    
             			}	
             		fclose(list);
 		} else runAppl(app);
