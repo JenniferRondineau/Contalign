@@ -26,7 +26,6 @@ THE SOFTWARE.
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "sam.h"
@@ -35,6 +34,7 @@ THE SOFTWARE.
 #include <errno.h>
 #include "kseq.h" 
 #include "bwamem.h"
+#include "memory.h"
 #include "contalign.h"
 #include <getopt.h>
 
@@ -71,7 +71,7 @@ static void usage ()
 
 static ContalignPtr ContalignNew()
 	{
-	return malloc(sizeof(Contalign)) ;
+	return safeMalloc(sizeof(Contalign)) ;
 	}
 	
  
@@ -90,7 +90,6 @@ int main(int argc, char** argv)
 	{
 	
 	ContalignPtr app = ContalignNew();
-	char *type;
 
 	// get commande line options
 	int c=0, option_index = 0;
@@ -103,7 +102,7 @@ int main(int argc, char** argv)
             {"output",  optional_argument, 0, 'O'},
             {"input",  required_argument, 0, 'I'},
             {"full_report",  required_argument, 0, 'c'},
-            {0,         0,                 0,  0 }
+            {0,		0,	  0,	 0 }
         };
         
 	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:I:c:", long_options, &option_index)) != -1) {
@@ -144,27 +143,40 @@ int main(int argc, char** argv)
 		}
 	else if(optind+1==argc) // only one BAM file or ".list" file 
 		{
-		app->filename_in=argv[optind]; 
-		type = strpbrk(argv[optind], ".");
-		if (strcmp(type,".list")==0) { // search if the file format is ".list"
+		
+		char* last_dot = strrchr(argv[optind], '.');
+		fprintf(stderr, "%s\n", last_dot);
+		
+		if (last_dot!=NULL && strcmp(last_dot,".list")==0) { // search if the file format is ".list"
 			FILE* list;
 			char path[FILENAME_MAX];
-			char* fin="\0";
+			app->filename_in=argv[optind]; 
 			list=fopen(app->filename_in,"r"); //open file for reading
 			if ( list == NULL) {
 		      		fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
 		      		exit(EXIT_FAILURE);
 	      	 	}
-	      	 	while(fgets(path,FILENAME_MAX, list) != 0) // read line by line
+	      	 	while(fgets(path,FILENAME_MAX, list) != NULL) // read line by line
             			{ 	 
-            			if(path[strlen(path) - 1] == '\n')
-            			path[strlen(path) - 1] = '\0';  
-            			if(strcmp(path, fin)==0) break;
+            			size_t line_len=strlen(path);
+            			if(line_len==0) continue;
+            			if(path[line_len - 1] == '\n')
+            				path[line_len - 1] = '\0';  
+            			else 
+            				{
+            				fprintf(stderr, "Cannot read file [%s]\n",strerror(errno));
+            				exit(EXIT_FAILURE);
+            				}
             			app->filename_in=path;
-            			runAppl(app);    
+            			runAppl(app);
+            			app->filename_in=NULL;  
             			}	
             		fclose(list);
-		} else runAppl(app);
+		} else
+			{
+			app->filename_in=argv[optind]; 
+			runAppl(app);
+			}
 
 		}
 	else

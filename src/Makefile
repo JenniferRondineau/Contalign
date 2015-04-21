@@ -15,15 +15,18 @@ libraries=${bwa.dir}/libbwa.a ${samtools.dir}/libbam.a ${htslib.dir}/libhts.a
 
 all: contalign  
 
-contalign : contalign.o runcontalign.o $(libraries)
+contalign : contalign.o runcontalign.o memory.o $(libraries)
 	${CC} -o $@ ${DFLAGS} $^ ${sam.libs} 
 
 contalign.o : contalign.c contalign.h debug.h $(libraries)
 	${CC} -c -o $@ ${CFLAGS} $< 
 
-runcontalign.o : runcontalign.c contalign.h debug.h $(libraries)
+runcontalign.o : runcontalign.c contalign.h debug.h memory.h $(libraries)
 	${CC} -c -o $@ ${CFLAGS} $< 
 
+memory.o: memory.c memory.h
+	${CC} -c -o $@ ${CFLAGS} $< 
+	
 ${bwa.dir}/libbwa.a:
 	rm -rf bwa-${bwa.version}
 	wget ${WGETFLAGS} -O ${bwa.version}.tar.gz "https://github.com/lh3/bwa/archive/${bwa.version}.tar.gz"
