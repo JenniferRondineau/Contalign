@@ -32,3 +32,15 @@ jeter*
 *~
 countalign
 *.bam
+*.aux
+*.log
+*.log
+*.pdf
+*.amb
+*.ann
+*.bwt
+*.pac
+*.sa 
+src/htslib-1.2.1
+src/samtools-1.2
+

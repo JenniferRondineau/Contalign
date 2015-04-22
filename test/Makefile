@@ -45,7 +45,7 @@ test2: 	../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
 	cat fullreport.txt
 	
 test3: ../src/contalign $(addsuffix .bwt,${reference}) ${sample.bam}
-	$< -r ${reference} -o test.txt -s save.fastq -c fullreport.txt sample.bam > /dev/null
+	$< -r ${reference} -o test.txt -s save.fastq -c fullreport.txt sample.bam sample.bam > /dev/null
 	@stat test.txt
 	cat test.txt
 	tail fullreport.txt

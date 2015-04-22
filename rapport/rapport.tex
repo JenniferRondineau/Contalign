@@ -6,6 +6,7 @@
 \usepackage{cite}
 
 
+
 % infos du document
 \title{Rapport de Stage}
 \author{Jennifer Rondineau}
@@ -14,6 +15,18 @@
  
 \input{pageDeGarde.tex} % page de garde
 
+Titre du stage : Détection d'éventuels contaminants dans des données NGS à l'aide d'un programme en C utilisant l'interface de programmation de BWA. \\
+
+Résumé : \\
+Dans le cadre d'analyse de génome / exome en NGS (Nouvelle génération de séquençage à haut débit), notre objectif était de créer un outil en C permettant d'identifier au sein d'un fichier BAM, les reads non mappés sur le génome humain, et tenter de les identifier sur d'éventuels contaminants (organismes etrangers tel que des phages phi-X, E. Coli...). \\
+Cet outil, Contalign, prend en entrée des fichiers BAM et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant divers contaminants possibles. Contalign rend un rapport du nombre de reads non mappés par échantillon et un bilan des reads mappés sur la référence des contaminants. \\
+Afin de pouvoir lire et traiter les informations dans les fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé l'aligneur BWA. Contalign est disponible sur le repositoire git suivant : https://github.com/JenniferRondineau/masterm2.git \\\\
+
+Mots clés : NGS, BAM, BWA, samtools, contaminants. \\
+\clearpage
+\paragraph{}
+résumé en anglais 
+
 \clearpage % mettre le sommaire sur une nouvelle page
 \renewcommand{\contentsname}{Sommaire} 
 \tableofcontents{} % afficher l'index
@@ -21,9 +34,21 @@
 
 \section{Introduction}
 
-\section{Principe du séquençage à haut débit}
+La masse importante de données générées par le séquençage à haut débit requière la mise en place d'un système de gestion et traitement des données. Ce traitement comporte différentes étapes notamment le nettoyage des données (cleaning data) et l'alignement des séquences sur une séquence de référence. Dans notre cas, la séquence de référence initiale correspond au génome humain.
 
+Le nettoyage des données NGS consiste en la recherche, au sein des séquences, des adapteurs  utilisés lors du séquençage. Cette recherche se base sur des critères de taille et pourcentage d'homologie.
+
+Malgré ce nettoyage, dans le cas d'étude sur le génome humain, suite à l'alignement contre une séquence de référence, il est encore possible de détecter des reads non mappés. Ces reads sont considérés comme étant des séquences probablement non humaines et donc potentiellement des séquences provenant de contaminants. Le but de ce stage fut de déterminer à l'aide d'un outil en C, la nature de ces reads non mappés. 
+
+Ce travail fût constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools permettant de lire les fichiers BAM, ainsi que la librairie de BWA permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques d'éventuels contaminants. Pour cela, nous nous sommes basés sur la littérature et certains travaux déjà existant. 
+
+
+\section{Principe du séquençage à haut débit}
+...
+
+De nombreux génomes humains sont complétement séquencés et disponibles, notamment suite au Projet 1000 Génomes. Afin de pouvoir tester mon programme je me suis basée sur ces données. \\
 \section{Les différents formats de fichiers}
+
 
 \subsection{FASTA}
 Le format fasta est le format le plus simple pour stocker et lire les séquences. Il est composé d'une première ligne comportant un "$>$" suivit par le nom de la séquence. Les lignes suivantes ne contiennent que l'enchainement des nucléotides. 
@@ -75,14 +100,23 @@ Le fichier BAM correspond à la forme compressée du fichier SAM. Le fichier BAM
 \section{Le programme Contalign}
 \paragraph{}
 
-
+Contalign est un programme en C prenant comme entrée un fichier BAM comportant une entête avec au minimum une ligne @RG donnant des renseignements sur les groupes de reads (Read Group), et donnant en sortie ce même fichier BAM d'entrée inchangé. Ce programme n'affecte en aucun cas le fichier d'origine.  \\
+Ce programme dépend de 3 librairies : 
+- la librairie Samtools
+- la librairie BWA
+- la librairie Htslib
+En effet, ce programme utilise certaines fonctions et structures appartenant à Samtools et bwa. La librairie Samtools permet de gérer l'ouverture et l'utilisation des données contenues dans les fichiers BAM. Alors que BWA, permet de réaliser l'alignement des reads contre les références de contaminants. 
 \\
 \subsection{Les arguments d'entrées du programme}
 \paragraph{}
-
+Pour son bon fonctionnement, Contalign nécessite certains arguments essentiels, tel que le fichier BAM d'entrée, un nom de fichier pour le rapport final contenant le nombre de reads non mappés par échantillons et les contaminants détectés, ainsi que la référence de contaminants sur laquelle on veut aligner ces reads. \\
+Il existe certaines contraintes pour ces arguments : \\
+Le fichier BAM d'entrée doit, comme dit précédément, contenir une entête avec au minimum une ligne @RG donnant des renseignements sur les reads groups. Si ce n'est pas le cas, le programme envoit un message d'erreur et "stop". \\
+Le fichier fasta comportant les références des contaminants doit être indexé avant d'être utilisé par Contalign. Cette indexation se fait grâce à l'outil BWA index. 
 \\
 \section{Choix des références de contaminants}
-
+Une étape importante de ce stage fut de déterminer une liste de contaminants potentiels pouvant correspondre aux reads non mappés identifiés.De part nos connaissances concernant les différentes méthodes de séquençage. Une des premières idées de contaminants envisageables fût des adapteurs, primeurs, plasmides et vecteurs utilisés lors des manipulations. NCBI propose une base contenant une centaine de référence de ce genre de contaminant nommée UniVec.  
+L'inconvénient majeur de cette base, 
 \\
 \section{Test du programme sur les données du laboratoires}
 
@@ -90,7 +124,8 @@ Le fichier BAM correspond à la forme compressée du fichier SAM. Le fichier BAM
 
 \section{Conclusion}
 \paragraph{}
-
+ ...~\cite{Johnson}, et ~\cite{Zoran} \\
+ 
 
 \textsc{\large Références :}\\[1.5cm]
 
