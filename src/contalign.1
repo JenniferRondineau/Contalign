@@ -46,6 +46,9 @@ Save FASTQ
 .BI "-r, --databwa " FILE 
 Reference file (*.fa)
 .TP
+.BI "-c, --full_report " FILE 
+Name of the output full report
+.TP
 .BI "-h, --help  "
 Output help and exit immediately
 .TP
@@ -59,10 +62,9 @@ The reference of contaminants needs to be indexed.
 masterm2/src/bwa-version/bwa index ref.fa 
 .SH AUTHOR
 \fBJennifer Rondineau.\fP
-Heng Li from the Sanger Institute wrote the C version of samtools. Bob
-Handsaker from the Broad Institute implemented the BGZF library. 
-Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c
 .SH SEE ALSO
+.TP 
+Heng Li from the Sanger Institute wrote the C version of samtools. Bob Handsaker from the Broad Institute implemented the BGZF library. Code is also inspired from Heng Li's https://github.com/lh3/bwa/blob/master/example.c
 .TP
 Samtools website <http://samtools.sourceforge.net>,  BWA website <http://bio-bwa.sourceforge.net>
 

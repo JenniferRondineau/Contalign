@@ -63,6 +63,7 @@ static void usage ()
 	PRINT_OPTION("O","output","FILE","Name of the output BAM file (*.bam)");
 	PRINT_OPTION("s","save","FILE","Save FASTQ file (*.fastq)");
 	PRINT_OPTION("r","databwa","FILE","Reference file (*.fa)");
+	PRINT_OPTION("c","full_report","FILE","Name of the output full report");
 	PRINT_OPTION("h","help","FILE","Output help and exit immediately.");
 	PRINT_OPTION("v","version","FILE","Output version and exit immediately.");
 	}
@@ -145,8 +146,7 @@ int main(int argc, char** argv)
 		{
 		
 		char* last_dot = strrchr(argv[optind], '.');
-		fprintf(stderr, "%s\n", last_dot);
-		
+
 		if (last_dot!=NULL && strcmp(last_dot,".list")==0) { // search if the file format is ".list"
 			FILE* list;
 			char path[FILENAME_MAX];

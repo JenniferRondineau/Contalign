@@ -40,8 +40,6 @@ THE SOFTWARE.
 
 
 
-
-
 /* write fastq in file_fastq */ 						
 #define DUMP_FASTQ if ( app->file_fastq != NULL) {\
 		   for (i=0; i < fastq_count; i++)\
@@ -131,7 +129,7 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
 				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
 				
-				/* Example of report can be obtained after alignment :
+				// Example of report can be obtained after alignment :
 				
 				int k=0;
 				fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
@@ -140,7 +138,7 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 					fprintf(stderr,"\n");
 				free(a.cigar); // deallocate CIGAR
 				
-				*/
+				
 
 				if (fastq[n].score < a.score ) //compare if this read has been previously mapped to another contaminant
 					{		
@@ -367,8 +365,9 @@ void runAppl(ContalignPtr app)
            		fastq[fastq_count].original_BAMFLAG = b->core.flag;
            		
 			res->sample->fastq = fastq;
-
+			
 			free(buf);
+			
 			fastq_count++;	
 
 			if(fastq_count == 1000)  
@@ -377,7 +376,7 @@ void runAppl(ContalignPtr app)
 				contaminant = align(fastq, contaminant, samples, fastq_count, &count_contaminants, sample_count, app); //mapping unmapped reads against reference of contaminants
 				fastq_count=0;
 				}
-	
+			
 			}
 		samwrite(app->out_file, b); // Write read in the output file
 		}
@@ -421,7 +420,6 @@ void runAppl(ContalignPtr app)
 		}
 	free(samples);
 	bam_destroy1(b);
-	
 }
 
 
