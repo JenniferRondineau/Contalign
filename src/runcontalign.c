@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 */
-
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,35 +48,42 @@ THE SOFTWARE.
 			}\
 		   } else \
 			{\
-			fprintf(stderr,"Unsaved fasta file.\n");\
+			LOG("Unsaved fasta file.\n");\
 		   }
 /* write the full report, if option "full_report" is indicated */
 
 #define FULL_REPORT if (app->full_report != NULL) fprintf(app->full_report,"%s\t%d\t%s\t%s\t%s\t%s\n", samples[sample].sample_name,samples[sample].fastq[n].original_BAMFLAG,samples[sample].fastq[n].contaminant->c_name,samples[sample].fastq[n].qname, samples[sample].fastq[n].seq, samples[sample].fastq[n].qual)
-
+ 
+/*
+ * Open BWA index, etc...
+ */
 void OpenFile(ContalignPtr app) 
 	{
 	if (app->filename_fastq != NULL) //open the fastq file, if option "save" is indicated 
 		{
-		app->file_fastq=safeFOpen(app->filename_fastq,"w+");	 	
+		app->file_fastq=safeFOpen(app->filename_fastq,"w");	 	
 		}		
 			
 	if (app->namefull_report != NULL) //open the full report, if option "full_report" is indicated
-			{
-			app->full_report =safeFOpen(app->namefull_report ,"w+"); 	
-			}
+		{
+		app->full_report =safeFOpen(app->namefull_report ,"w"); 	
+		}
 
 	if(app->ref == NULL) 
 		{
-		fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
+		LOG( "BWA Index load undefined.");
 		exit(EXIT_FAILURE);
-		} else { 
-			app->idx = bwa_idx_load(app->ref, BWA_IDX_ALL); // load the BWA index
-			if (NULL == app->idx) 
-				{
-				fprintf(stderr, "Index load failed : %s.\n",strerror(errno));
-				exit(EXIT_FAILURE);
-				}
+		}
+	else
+		{ 
+		LOG("loading bwa %s", app->ref);
+		app->idx = bwa_idx_load(app->ref, BWA_IDX_ALL); // load the BWA index
+		if (NULL == app->idx) 
+			{
+			FATAL("Index BWA load failed : \"%s\" %s.\n",
+				app->ref,
+				strerror(errno));
+			}
 		}	
 
 	 if (app->output_report != NULL) 
@@ -88,35 +95,42 @@ void OpenFile(ContalignPtr app)
 
 
 
-int compareGroup(const void *g1, const void *g2)
+static int compareGroup(const void *g1, const void *g2)
 	{
+	int c;
 	Group *group1 = (Group *) g1;
 	Group *group2 = (Group *) g2;
-	return strcmp (group1->rgId, group2->rgId);  //sort Read Group in alphabetical order
+	c= strcmp (group1->rgId, group2->rgId);  //sort Read Group in alphabetical order
+	return c;
 	}
 
 
-int compareContaminant(const void *c1, const void *c2)
+static int compareContaminant(const void *c1, const void *c2)
 	{
-	Contaminants *contaminant1 = (Contaminants *) c1;
-	Contaminants *contaminant2 = (Contaminants *) c2;
+	Contaminants* contaminant1 = *(Contaminants **) c1;
+	Contaminants* contaminant2 = *(Contaminants **) c2;
 	return contaminant2->contaminants_count - contaminant1->contaminants_count; //sort contaminants in descending order
 	}	
 
-int compareNameContaminant(const void *c1, const void *c2)
+static int compareNameContaminant(const void *c1, const void *c2)
 	{
-	Contaminants *contaminant1 = (Contaminants *) c1;
-	Contaminants *contaminant2 = (Contaminants *) c2;
-	return strcmp (contaminant1->c_name, contaminant2->c_name); //sort contaminants in alphabetical order
+	int c;
+	Contaminants* contaminant1 = *(Contaminants **) c1;
+	Contaminants* contaminant2 = *(Contaminants **) c2;
+	c= strcmp (contaminant1->c_name, contaminant2->c_name); //sort contaminants in alphabetical order
+	return c;
 	}
 
-Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, int fastq_count, int *count_contaminants, int sample_count, ContalignPtr app)
+/* align batch of fastq */
+static void align(Fastq* fastq,	Sample* samples,int fastq_count, int sample_count,ContalignPtr app)
 	{
 	int i=0, n=0, len=0, sample=0;
 	mem_opt_t *opt;
 	bwaidx_t *idx = app->idx;
 	opt = mem_opt_init(); // initialize the BWA-MEM parameters to the default values
-	for(sample=0;sample< sample_count;++sample) { 
+	assert(opt!=NULL);
+	for(sample=0;sample< sample_count;++sample)
+		{ 
 		for(n=0; n<fastq_count;n++) 
 			{
 			fastq[n].score = 0 ;
@@ -128,48 +142,68 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 				mem_aln_t a;
 				if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
 				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
-				
+				if(a.mapq< app->min_mapq)
+					{
+					LOG("%d",(int)a.mapq);
+					continue;
+					}
 				// Example of report can be obtained after alignment :
 				
 				int k=0;
-				fprintf(stderr,"%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
+				LOG("%s%s\t%c\t%s\t%ld\t%d\t%d\t", fastq[n].qname, fastq[n].read, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq, a.score); // print alignment
 				for (k = 0; k < a.n_cigar; ++k) // print CIGAR
-					fprintf(stderr,"%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
-					fprintf(stderr,"\n");
+					LOG("%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
+					LOG("\n");
 				free(a.cigar); // deallocate CIGAR
 				
 				
 
 				if (fastq[n].score < a.score ) //compare if this read has been previously mapped to another contaminant
 					{		
+					
 					Contaminants key;
 					key.c_name=idx->bns->anns[a.rid].name;
-
-					struct Contaminants *res = NULL; 
+					Contaminants* keyPtr=&key; 
+					Contaminants **res = NULL; 
 					res = bsearch(    // search if the contaminant is already registered
-						&key,
-						contaminant,
-						*count_contaminants, 
-						sizeof(Contaminants),
+						&keyPtr,
+						app->contaminant,
+						app->count_contaminants, 
+						sizeof(Contaminants*),
 						compareNameContaminant
 						);
-
+					{
+					int _t=0;
+					for(_t=1;_t< app->count_contaminants;_t++)
+						{
+						assert(strcmp(app->contaminant[_t-1]->c_name,
+							app->contaminant[_t]->c_name)<0);
+						}
+					}
+					
 					if (res != NULL) { // if the contaminant is already registered 
-						res->contaminants_count++; 
-						fastq[n].contaminant=res;
+						Contaminants* contaminant = *(Contaminants **) res;
+						contaminant->contaminants_count++;
+						fastq[n].contaminant = contaminant ;
 						fastq[n].score = a.score;
+						LOG("contaminant is already registered ");
 						FULL_REPORT;
 						
 					}else {   // if the contaminant isn't registered 
-						contaminant = (Contaminants*)safeRealloc(contaminant,sizeof(Contaminants)*(*count_contaminants+1)); 
-						contaminant[*count_contaminants].c_name = safeStrdup(idx->bns->anns[a.rid].name); //Save the new contaminant 
-						contaminant[*count_contaminants].contaminants_count=1;
-						res=&contaminant[*count_contaminants];
-						*count_contaminants = *count_contaminants+1 ;
-						fastq[n].contaminant=res;
+						LOG("adding new contaminant %s ",idx->bns->anns[a.rid].name);
+						Contaminants *new_contaminant= safeMalloc(sizeof(Contaminants));
+						new_contaminant->c_name = safeStrdup(idx->bns->anns[a.rid].name); //Save the new contaminant
+						new_contaminant->contaminants_count=1;					
+						app->contaminant = (Contaminants**)safeRealloc(app->contaminant,sizeof(Contaminants*)*(app->count_contaminants+1));
+						app->contaminant[app->count_contaminants] = new_contaminant; 
+						app->count_contaminants++;
+						fastq[n].contaminant= new_contaminant;
 						fastq[n].score = a.score;
+						//LOG("%s",app->namefull_report);
 						FULL_REPORT;
-						qsort( contaminant, *count_contaminants, sizeof(Contaminants), compareNameContaminant); // sort Contaminant in alphabetical order		
+						LOG("Sorting ...");
+						qsort( app->contaminant, app->count_contaminants, sizeof(Contaminants*), compareNameContaminant); // sort Contaminant in alphabetical order		
+					
 						}
 					}
 		
@@ -182,33 +216,34 @@ Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, i
 			}
 		}
 	free(opt);
-	return contaminant;
+	
+	LOG("END...");
 	}
 
 
 
 void runAppl(ContalignPtr app)
 	{
-	int i=0, sample_count=0, group_count=0, fastq_count=0, count_contaminants=0 ;
+	int i=0, sample_count=0, group_count=0, fastq_count=0 ;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
 	float nReads=0,  pourcent =0;
 	const char *rgId=NULL, *sampleName=NULL; 
 	Sample* samples=NULL;
-	Contaminants* contaminant=NULL;
 	Group* group=NULL;
 	Fastq* fastq=NULL;
 	uint8_t *search = NULL, *seq= NULL, *qual = NULL;
 	char *qname = NULL, *read = NULL;
 	int8_t *buf = NULL;
 	int32_t qlen =NULL;
-	
-	fprintf(stderr,"Reading from %s...\n",(app->filename_in!=NULL? app->filename_in : "<<stdin>>")); // message indicating the name of the file read
+	app->count_contaminants = 0 ;
+	srand48(0);
+	LOG("Reading from %s...\n",(app->filename_in!=NULL? app->filename_in : "<<stdin>>")); // message indicating the name of the file read
 	app->fp = sam_open( app->filename_in!=NULL? app->filename_in : "-" );  // opening bam file
 	if (app->fp == NULL) 
 		{
-		fprintf(stderr,"Cannot read file \"%s\". %s.\n",
+		LOG("Cannot read file \"%s\". %s.\n",
 			(app->filename_in!=NULL? app->filename_in : "<<stdin>>"),
 			strerror(errno)
 			);
@@ -219,7 +254,7 @@ void runAppl(ContalignPtr app)
 
 		if( header == NULL)
 			{
-			fprintf(stderr, "Cannot read header \n");
+			LOG( "Cannot read header \n");
 			exit(EXIT_FAILURE);
 			}
 
@@ -227,7 +262,7 @@ void runAppl(ContalignPtr app)
 	
 		if (app->out_file == NULL) 
 			{
-			fprintf(stderr,"Failed to open output file . %s.\n",strerror(errno));
+			LOG("Failed to open output file . %s.\n",strerror(errno));
 			exit(EXIT_FAILURE);
 			} 	
 
@@ -262,7 +297,7 @@ void runAppl(ContalignPtr app)
 				{ 
 				if (strcmp (group[i].rgId,rgId) == 0) 
 					{
-					fprintf(stderr,"DUP GROUP");
+					LOG("DUP GROUP");
 					exit(EXIT_FAILURE);
 					}
 				}
@@ -276,7 +311,7 @@ void runAppl(ContalignPtr app)
 
 	if ((group_count == 0)  && (sample_count ==0))
 		{
-		fprintf(stderr,"Error, missing SAM header or @RG tag\n");
+		LOG("Error, missing SAM header or @RG tag\n");
 		exit(EXIT_FAILURE);
 		}
 
@@ -290,12 +325,12 @@ void runAppl(ContalignPtr app)
 			Group key;
 			/*if ((b->core.flag & BAM_FMUNMAP)) 
 				{
-				fprintf(stderr, "Not orphelin \n");
+				LOG("Not orphelin \n");
 				}*/
 			search = bam_aux_get(b, "RG"); 
 			if (search == NULL) 
 				{
-				fprintf(stderr, "Error, missing @RG tag\n");
+				LOG("Error, missing @RG tag\n");
 				exit(EXIT_FAILURE);
 				}
 			else key.rgId = bam_aux2Z(search); 
@@ -320,10 +355,10 @@ void runAppl(ContalignPtr app)
 			qlen = (b->core.l_qseq);
 			if (qlen == 0) 
 				{
-				fprintf(stderr, "Error, missing sequence\n");
+				LOG("Error, missing sequence\n");
 				exit(EXIT_FAILURE);
 				}
-       			buf=calloc((qlen+1),sizeof(int8_t));       			
+       			buf=safeCalloc((qlen+1),sizeof(int8_t));       			
        			buf[qlen] = '\0';
        			seq = bam_get_seq(b);
         		for (i = 0; i < qlen; ++i)
@@ -339,7 +374,7 @@ void runAppl(ContalignPtr app)
 			qname = safeStrdup(bam_get_qname(b));
 			if (qname == NULL) 
 				{
-				fprintf(stderr, "Error, missing read name\n");
+				LOG( "Error, missing read name\n");
 				exit(EXIT_FAILURE);
 				}
 			if ((b->core.flag & BAM_FREAD1) && !(b->core.flag & BAM_FREAD2)) read="/1";
@@ -353,7 +388,7 @@ void runAppl(ContalignPtr app)
            		qual = bam_get_qual(b);	
            		if (qual == NULL) 
            			{
-				fprintf(stderr, "Error, missing quality\n");
+				LOG("Error, missing quality\n");
 				exit(EXIT_FAILURE);
 				}
            		buf=safeCalloc((qlen+1),sizeof(int8_t));       			
@@ -373,7 +408,7 @@ void runAppl(ContalignPtr app)
 			if(fastq_count == 1000)  
 				{
 				DUMP_FASTQ; // Write fastq file
-				contaminant = align(fastq, contaminant, samples, fastq_count, &count_contaminants, sample_count, app); //mapping unmapped reads against reference of contaminants
+				align(fastq, samples, fastq_count, sample_count, app); //mapping unmapped reads against reference of contaminants
 				fastq_count=0;
 				}
 			
@@ -383,29 +418,33 @@ void runAppl(ContalignPtr app)
 	
         //write and mapping the latest reads
 	DUMP_FASTQ; 
-	contaminant = align(fastq, contaminant, samples, fastq_count, &count_contaminants, sample_count, app); 
+	align(fastq, samples, fastq_count, sample_count, app); 
 
 	
-	qsort( contaminant, count_contaminants, sizeof(Contaminants), compareContaminant); //sort the contaminants in descending order
+	qsort(app->contaminant, app->count_contaminants, sizeof(Contaminants*), compareContaminant); //sort the contaminants in descending order
 
 	// Write the report containing number of unmapped reads by sample and potential contaminants
 	for(i=0;i< sample_count;++i)
 		fprintf(app->file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
-	for(i=0;i< count_contaminants;++i)
+	for(i=0;i< app->count_contaminants;++i)
 		{
-		pourcent = (contaminant[i].contaminants_count / nReads)*100;
-		fprintf(app->file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,contaminant[i].contaminants_count,nReads, contaminant[i].c_name);
+		pourcent = (app->contaminant[i]->contaminants_count / nReads)*100;
+		fprintf(app->file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,app->contaminant[i]->contaminants_count,nReads, app->contaminant[i]->c_name);
 		}
 
 
 	// Close files, free and return
 	sam_close(app->fp);
 	samclose(app->out_file);
-	for (i=0; i<count_contaminants; i++)
+
+		
+	
+	for (i=0; i<app->count_contaminants; i++)
 		{
-		free(contaminant[i].c_name);
+		free(app->contaminant[i]);
 		}
-	free(contaminant);
+	free(app->contaminant);
+	app->contaminant=0;
 	
 	for (i=0; i<group_count; i++)
 		{

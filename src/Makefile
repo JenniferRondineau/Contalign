@@ -7,7 +7,8 @@ CC=gcc
 samtools.dir=samtools-${samtools.version}
 htslib.dir=${samtools.dir}/htslib-${htslib.version}
 bwa.dir=bwa-${bwa.version}
-CFLAGS= -Wall -O3 -I ${samtools.dir} -I ${bwa.dir}  -I ${htslib.dir}
+## to debug replace -Wall -O3 with -g
+CFLAGS= -DNDEBUG -Wall -O3 -I ${samtools.dir} -I ${bwa.dir}  -I ${htslib.dir}
 LDFLAGS=-L ${samtools.dir} -L ${htslib.dir} -L ${bwa.dir}
 sam.libs=  -lm -lz -lpthread
 libraries=${bwa.dir}/libbwa.a ${samtools.dir}/libbam.a ${htslib.dir}/libhts.a

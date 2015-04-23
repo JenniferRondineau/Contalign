@@ -26,7 +26,35 @@ THE SOFTWARE.
 #ifndef DEBUG_H
 #define DEBUG_H
 
+#include <assert.h>
+
 #define DEBUG fprintf(stderr,"[DEBUG] %s %d\n",__FILE__,__LINE__)
+
+// see https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
+
+#ifndef NDEBUG
+
+#define LOG(...)  \
+	{\
+	fprintf(stderr,"[LOG] %s %d:",__FILE__,__LINE__);\
+	fprintf(stderr,__VA_ARGS__);\
+	fputc('\n',stderr);\
+	}
+
+#else
+
+#define LOG(...) do { } while(0)
+
+#endif
+
+#define FATAL(...)  \
+	{\
+	fprintf(stderr,"[LOG] %s %d:",__FILE__,__LINE__);\
+	fprintf(stderr,__VA_ARGS__);\
+	fputc('\n',stderr);\
+	exit(EXIT_FAILURE);\
+	}
+
 
 #endif
 

@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 */
-
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -69,16 +69,23 @@ static void usage ()
 	}
 
 
-
+/*
+ * create new ContalignPtr
+ */
 static ContalignPtr ContalignNew()
 	{
-	return safeMalloc(sizeof(Contalign)) ;
+	ContalignPtr c= safeCalloc(1,sizeof(Contalign)) ;
+	c->min_mapq=10;
+	return c;
 	}
 	
  
-
+/*
+ * dispose/free ContalignPtr
+ */
 static void ContalignRelease(ContalignPtr app)  // Close files, free 
 	{
+	assert(app!=NULL);
 	bwa_idx_destroy(app->idx);
 	fclose(app->file);	
 	if (app->file_fastq != NULL) fclose(app->file_fastq);
@@ -151,11 +158,7 @@ int main(int argc, char** argv)
 			FILE* list;
 			char path[FILENAME_MAX];
 			app->filename_in=argv[optind]; 
-			list=fopen(app->filename_in,"r"); //open file for reading
-			if ( list == NULL) {
-		      		fprintf(stderr,"Cannot open file. %s.\n",strerror(errno));
-		      		exit(EXIT_FAILURE);
-	      	 	}
+			list=safeFOpen(app->filename_in,"r"); //open file for reading
 	      	 	while(fgets(path,FILENAME_MAX, list) != NULL) // read line by line
             			{ 	 
             			size_t line_len=strlen(path);
@@ -164,8 +167,7 @@ int main(int argc, char** argv)
             				path[line_len - 1] = '\0';  
             			else 
             				{
-            				fprintf(stderr, "Cannot read file [%s]\n",strerror(errno));
-            				exit(EXIT_FAILURE);
+            				FATAL("Cannot read file [%s]\n",strerror(errno));
             				}
             			app->filename_in=path;
             			runAppl(app);
@@ -175,17 +177,21 @@ int main(int argc, char** argv)
 		} else
 			{
 			app->filename_in=argv[optind]; 
+			LOG("Processing one bam : %s",app->filename_in);
 			runAppl(app);
 			}
 
 		}
 	else
 		{
+		
 		// list of BAM files
 		while(optind<argc)
 			{
 			app->filename_in=argv[optind];
+			LOG("Processing BAM %s",app->filename_in);
 			runAppl(app);
+			app->filename_in=NULL; 
 			++optind;
 			}
 		}

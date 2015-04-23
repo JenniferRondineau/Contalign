@@ -27,6 +27,14 @@ THE SOFTWARE.
 #define COUNT_ALIGN_H
 #include "debug.h"
 
+
+/* contaminant structure */
+typedef struct Contaminants
+	{
+	char* c_name; /* name of contaminant ex: E.coli */
+	float contaminants_count; 
+	}Contaminants;
+
 /* structure of the program parameters */  
 typedef struct Contalign
 	{
@@ -42,14 +50,13 @@ typedef struct Contalign
 	char* namefull_report; /* name of full report file */
 	bwaidx_t *idx; /* index file */
 	char* ref; /* name of reference of contaminant */
+	
+	//all contaminants
+	Contaminants** contaminant;
+	int count_contaminants ;
+	uint32_t min_mapq;
 	}Contalign,*ContalignPtr;
 
-/* contaminant structure */
-typedef struct Contaminants
-	{
-	char* c_name; /* name of contaminant ex: E.coli */
-	float contaminants_count; 
-	}Contaminants;
 	
 /*Fastq structure */
 typedef struct Fastq
@@ -82,14 +89,8 @@ typedef struct Group
  	
 void runAppl(ContalignPtr app);
 void OpenFile(ContalignPtr app);
-int compareGroup(const void *g1, const void *g2);
-int compareContaminant(const void *c1, const void *c2);
 
 #define VERIFY_NOT_NULL(POINTER) do{if(POINTER==NULL) { fprintf(stderr,"Memory Alloc failed File %s Line%d.\n",__FILE__,__LINE__); exit(EXIT_FAILURE);}}while(0)
-
-/* map unmapped reads against a reference of contaminants */
-Contaminants *align( Fastq* fastq, Contaminants* contaminant, Sample* samples, int fastq_count, int *count_contaminants, int sample_count, ContalignPtr app);
-
 
 #define COUNTALIGN_VERSION "0.1"
 
