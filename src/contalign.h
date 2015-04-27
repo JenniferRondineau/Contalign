@@ -50,11 +50,10 @@ typedef struct Contalign
 	char* namefull_report; /* name of full report file */
 	bwaidx_t *idx; /* index file */
 	char* ref; /* name of reference of contaminant */
-	
 	//all contaminants
 	Contaminants** contaminant;
 	int count_contaminants ;
-	uint32_t min_mapq;
+	uint32_t min_mapq; /* choice of minimum MAPing quality */
 	}Contalign,*ContalignPtr;
 
 	

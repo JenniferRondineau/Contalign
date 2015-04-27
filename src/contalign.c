@@ -64,6 +64,7 @@ static void usage ()
 	PRINT_OPTION("s","save","FILE","Save FASTQ file (*.fastq)");
 	PRINT_OPTION("r","databwa","FILE","Reference file (*.fa)");
 	PRINT_OPTION("c","full_report","FILE","Name of the output full report");
+	PRINT_OPTION("m","mimMapq","INT","Choice of minimum MAPing quality ");
 	PRINT_OPTION("h","help","FILE","Output help and exit immediately.");
 	PRINT_OPTION("v","version","FILE","Output version and exit immediately.");
 	}
@@ -75,7 +76,7 @@ static void usage ()
 static ContalignPtr ContalignNew()
 	{
 	ContalignPtr c= safeCalloc(1,sizeof(Contalign)) ;
-	c->min_mapq=10;
+	c->min_mapq=0;
 	return c;
 	}
 	
@@ -109,11 +110,12 @@ int main(int argc, char** argv)
             {"databwa",  required_argument, 0, 'r'},
             {"output",  optional_argument, 0, 'O'},
             {"input",  required_argument, 0, 'I'},
+            {"minMapq",  required_argument, 0, 'm'},
             {"full_report",  required_argument, 0, 'c'},
             {0,		0,	  0,	 0 }
         };
         
-	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:I:c:", long_options, &option_index)) != -1) {
+	 while ((c = getopt_long(argc, argv,"r:o:O:hvs:I:c:m:", long_options, &option_index)) != -1) {
 
 		 switch(c) {
 
@@ -132,6 +134,14 @@ int main(int argc, char** argv)
 			case 'O': app->filename_out = optarg; break;
 			
 			case 'c': app->namefull_report = optarg; break;
+			
+			case 'm': app->min_mapq = atoi (optarg);
+				  if (app->min_mapq == 0 ) 
+				  	{
+				  	fprintf(stderr, "ERROR: int argument required\n"); 
+				  	return EXIT_FAILURE;
+				  	} 
+				  break;
 			 
 			case '?': fprintf(stderr, "ERROR: option -%c is undefined\n", optopt); return EXIT_FAILURE; break;
 			
@@ -142,7 +152,9 @@ int main(int argc, char** argv)
 		}
 	}
 	
-	
+	if (app->min_mapq == 0) 
+		app->min_mapq = 10;
+
 	OpenFile(app) ; 
 
 	if(optind==argc) // if option "--inputfile"
