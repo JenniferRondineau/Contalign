@@ -144,6 +144,7 @@ static void align(Fastq* fastq,	Sample* samples,int fastq_count, int sample_coun
 				a = mem_reg2aln(opt, idx->bns, idx->pac, len, fastq[n].seq, &ar.a[i]); 
 				if(a.mapq< app->min_mapq)
 					{
+					free(a.cigar);
 					LOG("%d",(int)a.mapq);
 					continue;
 					}
@@ -258,13 +259,15 @@ void runAppl(ContalignPtr app)
 			exit(EXIT_FAILURE);
 			}
 
-	app->out_file = samopen((app->filename_out!=NULL? app->filename_out : "-"), "wb", header );  //create the output BAM file with the initial header
-	
+	if (app->filename_out != NULL) 
+		{
+		app->out_file = samopen((app->filename_out!=NULL? app->filename_out : "-"), "wb", header );   //create the output BAM file with the initial header
 		if (app->out_file == NULL) 
 			{
 			LOG("Failed to open output file . %s.\n",strerror(errno));
 			exit(EXIT_FAILURE);
 			} 	
+		}
 
 	void *iter = sam_header_parse2(header->text);
 	while ( (iter = sam_header2key_val(iter, "RG","ID","SM",&rgId,&sampleName) )!=NULL) //sam_header2key_val() allows to find 'RG' tag in the header of BAM file. 
@@ -413,8 +416,10 @@ void runAppl(ContalignPtr app)
 				}
 			
 			}
-		samwrite(app->out_file, b); // Write read in the output file
-		}
+		if (app->filename_out != NULL) 
+			{
+			samwrite(app->out_file, b); } // Write read in the output file
+			}
 	
         //write and mapping the latest reads
 	DUMP_FASTQ; 
@@ -435,8 +440,7 @@ void runAppl(ContalignPtr app)
 
 	// Close files, free and return
 	sam_close(app->fp);
-	samclose(app->out_file);
-
+	if (app->filename_out != NULL) samclose(app->out_file);
 		
 	
 	for (i=0; i<app->count_contaminants; i++)
