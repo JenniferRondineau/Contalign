@@ -416,9 +416,10 @@ void runAppl(ContalignPtr app)
 				}
 			
 			}
-		if (app->filename_out != NULL) 
-			{
-			samwrite(app->out_file, b); } // Write read in the output file
+			if (app->filename_out != NULL) 
+				{
+				samwrite(app->out_file, b); // Write read in the output file
+				} 
 			}
 	
         //write and mapping the latest reads
