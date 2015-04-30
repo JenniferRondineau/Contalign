@@ -52,7 +52,7 @@ typedef struct Contalign
 	char* ref; /* name of reference of contaminant */
 	//all contaminants
 	Contaminants** contaminant;
-	int count_contaminants ;
+	long count_contaminants ;
 	uint32_t min_mapq; /* choice of minimum MAPing quality */
 	}Contalign,*ContalignPtr;
 

@@ -225,11 +225,13 @@ static void align(Fastq* fastq,	Sample* samples,int fastq_count, int sample_coun
 
 void runAppl(ContalignPtr app)
 	{
-	int i=0, sample_count=0, group_count=0, fastq_count=0 ;
+	int i=0, j=0,sample_count=0, group_count=0, fastq_count=0 ;
 	bam_hdr_t *header=NULL;
 	bam1_t *b = NULL;
 	b = bam_init1();
-	float nReads=0,  pourcent =0;
+	long nReads=0;
+	float pourcent1 =0; /* percentage of contaminants relative to the total number of reads */
+	float pourcent2 =0;/* percentage of contaminants relative to the number of unmapped reads */
 	const char *rgId=NULL, *sampleName=NULL; 
 	Sample* samples=NULL;
 	Group* group=NULL;
@@ -431,13 +433,15 @@ void runAppl(ContalignPtr app)
 
 	// Write the report containing number of unmapped reads by sample and potential contaminants
 	for(i=0;i< sample_count;++i)
+	{
 		fprintf(app->file,"%s\t%lu \n",samples[i].sample_name, samples[i].unMap);
-	for(i=0;i< app->count_contaminants;++i)
+		for(j=0;j< app->count_contaminants;++j)
 		{
-		pourcent = (app->contaminant[i]->contaminants_count / nReads)*100;
-		fprintf(app->file,"%f%% \t (%.0f/%.0f) \t%s\n", pourcent,app->contaminant[i]->contaminants_count,nReads, app->contaminant[i]->c_name);
+			pourcent1 = (app->contaminant[j]->contaminants_count / nReads)*100;
+			pourcent2 = (app->contaminant[j]->contaminants_count / samples[i].unMap)*100;
+			fprintf(app->file,"%f%% \t (%.0f/%lu) \t %f%% \t (%.0f/%lu) \t%s\n", pourcent1,app->contaminant[j]->contaminants_count,nReads, pourcent2, app->contaminant[j]->contaminants_count,samples[i].unMap, app->contaminant[j]->c_name);
 		}
-
+	}
 
 	// Close files, free and return
 	sam_close(app->fp);
