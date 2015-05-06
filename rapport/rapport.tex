@@ -5,7 +5,7 @@
 \usepackage{lmodern} 
 \usepackage{cite}
 \usepackage{listings}
-\usepackage[top = 3.5cm, left = 3cm, bottom = 3cm, right = 3cm]{geometry}
+\usepackage[top = 3cm, left = 2.5cm, bottom = 2.5cm, right = 2.5cm]{geometry}
 
 
 % infos du document
@@ -22,9 +22,9 @@ Détection d'éventuels contaminants dans des données NGS à l'aide d'un progra
 Résumé : \\
 
 Dans le cadre d'analyse de génome/exome en NGS (Séquençage Nouvelle Génération), notre objectif était de créer un outil en C permettant d'identifier au sein d'un fichier BAM, les reads non mappés sur le génome humain, et tenter de les identifier sur d'éventuels contaminants (organismes étrangers tels que des phages phi-X, des mycoplasmes, E. Coli...). \\
-Cet outil, Contalign, prend en entrée des fichiers BAM et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant des génomes de divers contaminants. Il rend un rapport du nombre de reads non mappés par échantillon et un bilan des contaminants éventuellement détectés. \\
+Cet outil, Contalign, prend en entrée des fichiers BAM et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant des génomes de divers contaminants. Il produit un rapport contenant le nombre de reads non mappés par échantillon et un bilan des contaminants éventuellement détectés. \\
 Contalign offre plusieurs propositions de sauvegarde, notamment la sauvegarde des reads non mappés du fichier BAM initial dans un nouveau fichier FASTQ, ou encore une sauvegarde du rapport de l'alignement des reads sur les contaminants.\\
-Afin de pouvoir lire et traiter les informations des fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé l'aligneur BWA. Contalign est disponible sur le repositoire git suivant : \begin{center} https://github.com/JenniferRondineau/masterm2.git \end{center}
+Afin de pouvoir lire et traiter les informations des fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé la librairie de l'aligneur BWA. Contalign est disponible librement sur le repositoire git suivant : \begin{center} https://github.com/JenniferRondineau/masterm2.git \end{center}
 Les premiers tests du programme sur les données du laboratoire ont permis de détecter surtout des contaminations bactériennes, essentiellement par  Escherichia Coli.\\\\
 
 Mots clés : NGS, BAM, BWA, Samtools, Contamination. \\
@@ -46,29 +46,28 @@ Keywords : Next-generation sequencing, BAM, BWA, Samtools, Contamination.
 
 \section{Introduction}
 
-La masse importante de données générées par le séquençage à haut débit requière la mise en place d'un système de gestion et traitement des données. Ce traitement comporte différentes étapes notamment le nettoyage des données (cleaning data) et l'alignement des séquences sur une séquence de référence. Dans notre cas, la séquence de référence initiale correspond au génome humain.\\
+Le séquençage à haut débit produit une masse importante de données, qui ne sont utiles que si elles sont analysés. Ceci induit donc une mise en place d'un système de gestion et traitement de ces données. Dans le cas de séquençage de génome entier ou d'exome, à la sortie du séquençeur, une des étapes clés de l'analyse correspond à l'alignement des séquences sur une séquence de référence, afin de pouvoir contrôler la qualité du séquençage. \\
+Suite à cet alignement, il est possible de détecter des reads dit non mappés, c'est-à-dire qu'ils ne s'alignent pas sur le génome de référence. Ces reads peuvent correspondre à des régions dupliquées, des régions inconnues, à des régions de mauvaises qualités (du point de vue séquençage) ou alors à une éventuelle contamination par un organisme étranger. \\
 
-Le nettoyage des données NGS consiste en la recherche, au sein des séquences, des adapteurs  utilisés lors du séquençage. Cette recherche se base sur des critères de taille et pourcentage d'homologie.\\
+L'objectif de ce stage était de créer un outil en C permettant de déterminer si ces reads non mappés étaient essentiellement dûs à des contaminations externes. Ce travail fut constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools~\cite{SAM} permettant de lire les fichiers BAM, ainsi que la librairie de BWA~\cite{BWA} permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques des éventuels contaminants. Pour cela, nous nous sommes basés sur nos connaissances et la littérature. \\\\
+Cette analyse aurait été possible sans passer par la création de ce nouvel outil. Grâce à Samtools nous aurions pu séléctionner seulement les reads non mappés et ensuite les aligner avec BWA sur des contaminants potentiels. L'intérêt de la création de cet outil, ça serait de pouvoir l'intégrer au sein d'un pipeline d'analyse (Figure 1), par exemple à la sortie de BWA, afin d'avoir un rapport de la qualité du séquençage. Et par la même occasion, ce projet de programmation en C, m'a permis d'approfondir mes connaissances en programmation en C. 
+\begin{center}
+\includegraphics[scale=0.4]{illustration1.png}~\\
+\textbf{Figure 1 :} intégration de Contalign dans un pipeline
+\end{center}
 
-Malgré ce nettoyage, dans le cas d'étude sur le génome humain, suite à l'alignement contre une séquence de référence, il est encore possible de détecter des reads non mappés. Ces reads sont considérés comme étant des séquences probablement non humaines et donc potentiellement provenant de contaminants. Le but de ce stage fut de déterminer à l'aide d'un outil en C, la nature de ces reads non mappés. \\
+Pour finir, la dernière étape fût de tester ce programme sur des données du projet 1 000 génomes~\cite{1000Genomes}, et sur les données du laboratoire.
 
-Ce travail fut constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools permettant de lire les fichiers BAM, ainsi que la librairie de BWA permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques des éventuels contaminants. Pour cela, nous nous sommes basés sur nos connaissances et la littérature. \\
-
-Pour finir, nous avons testé le programme sur des données du projet 1 000 génomes, et sur les données du laboratoire. \\
-
-\clearpage
 
 \section{Le séquençage à haut débit}
 
 \subsection{L'importance du séquençage du génome humain}
 
+La connaissance du génome complet de chaque individu permettrait de nombreuses applications dans le domaine de la médecine, ceci pourrait aider pour le diagnostic de certaines maladies ou encore pour les études génétiques. En effet, de  nombreuses maladies humaines sont dues à des mutations dans des gènes. La connaissance du génome humain dans son intégralité permettrait de pouvoir éventuellement soigner ou diagnostiquer ces maladies, grâce à la connaissance du gène impliqué. Cela pourrait faciliter la mise au point de test diagnostics à partir de l'ADN. L'identification du gène responsable d'une maladie pourrait aussi permettre de comprendre son mécanisme d'appartion et de pouvoir la prévenir en développant de nouvelles thérapies. \\
+
 Le séquençage est devenu un outil essentiel, notamment en médecine et dans le domaine de la recherche. C'est en 1977 que Sanger invente la première technique de séquençage de l'ADN, et depuis maintenant plus de 30 ans les techniques ne cessent de s'améliorer. 
 
-Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de groupes ethniques différents. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques ~\cite{1000Genomes} . Mais la détermination de la séquence complète du génome humain n'est que la première étape de son étude. Il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices. On appelle cette étape l'annotation. 
-
-L'étape d'annotation du génome humain est loin d'être terminée, même si de nombreux gènes sont déjà repérés. On peut espérer  dans un avenir plus ou moins proche être capable de dresser un inventaire relativement complet des gènes humains. 
-
-La connaissance du génome complet de chaque individu permettrait de nombreuses applications dans le domaine de la médecine, ceci pourrait aider pour le diagnostic de certaines maladies ou encore pour les études génétiques. En effet, de  nombreuses maladies humaines sont dues à des mutations dans des gènes. La connaissance du génome humain dans son intégralité permettrait de pouvoir éventuellement soigner ou diagnostiquer ces maladies, grâce à la connaissance du gène impliqué. Cela pourrait faciliter la mise au point de test diagnostics à partir de l'ADN. 
+Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes~\cite{1000Genomes}, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de populations différentes. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques. Mais la détermination de la séquence complète du génome humain n'est que la première étape de son étude. Il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices. On appelle cette étape l'annotation. 
 
 \subsection{Principe du séquençage }
 
@@ -76,16 +75,22 @@ Le séquençage de l'ADN est une méthode dont le but est de déterminer l'encha
 
 La première méthode de séquençage décrite fut celle de Sanger en 1977, cette technique a révolutionné la biologie moléculaire. Le premier génome complètement séquencé fût un génome bactérien, Haemophilus influenzae en 1995. Pour le premier génome humain complètement séquencé, il a fallu attendre 2003. 
 
-Actuellement, trois grandes technologies de séquençage dominent le marché, il s'agit du pyroséquençage 454, d'Illumina et de SOLID. \\
+Actuellement, plusieurs technologies de séquençage sont sur le marché : pyroséquençage 454, Illumina, MinION, Helicos (Biosciences), PacBio (Pacific Biosciences), Ion Torrent (Life Technologies), etc... 
 
-Ces technologies se décomposent en 4 grandes étapes :
-\begin{itemize}
+\clearpage
+Toutes ces technologies se décomposent en 4 grandes étapes :
+\begin{enumerate}
 \item la préparation des banques NGS, qui contient une étape d'amplification par PCR (Polymerase Chain Reaction) ;
 \item les cycles de réactions de séquençage ;
 \item la prise d'image après chacun de ces cycles afin de déterminer le nucléotide correspondant ;
 \item l'analyse des données. 
-\end{itemize}
-
+\end{enumerate}
+\begin{center}
+\includegraphics[scale=0.5]{ngs.png}~\\
+\textbf{Figure 2 :} Principe du séquençage NGS
+\end{center}
+Les étapes 1 à 3 sont représentées sur cette illustration (Figure 2). Ce stage ne fut pas concentré sur ces étapes mais sur l'étape 4 : l'analyse des données, et notamment sur leur qualité.
+\clearpage
 
 
 \section{Les différents formats de fichiers}
@@ -105,69 +110,81 @@ Un fichier au format fasta présente conventionnellement une extension ".fasta" 
 
 \subsection{FASTQ}
 
-Le format FASTQ est un format texte issu du format fasta. Il comporte 4 lignes par séquence :
+Le format FASTQ~\cite{fastq} est un format texte issu du format fasta. Il comporte 4 lignes par séquence :
 \begin{itemize}
 \item Une ligne comportant un @ pour l'identifiant de la séquence ;
 \item la séquence ;
 \item une ligne débutant par "+" parfois suivi de l’identifiant ;
 \item les scores de qualité associés à chacune des bases.
 \end{itemize}
-
+\clearpage
 Exemple : \\
 
-\includegraphics[scale=0.74]{fastq.png}~\\
+\includegraphics[scale=0.55]{fastq.png}~\\
 
-Le score de qualité associé à chacune des bases est codé en code ASCII, qui est une échelle de corrélation de symboles, une manière de représenter la qualité en un seul symbole.
+Le score de qualité associé à chacune des bases est codé en code ASCII, qui est une échelle de corrélation de symboles, une manière de représenter la qualité en un seul symbole. La qualité représente la probabilité qu'une base soit incorrecte. \\
 
-Il existe des fichiers FASTQ "single", et "paired-end". Dans le fichier single, les reads vont tous dans le même sens, soit ce sont des séquences d'amorces sens (forward) 5' vers 3', soit des séquences d'amorces anti-sens (reverse) 3' vers 5'. Alors que dans le fichier paired-end, les reads vont dans les deux sens (forward et reverse), cette information est indiquée dans le nom de la séquence, à la fin de l'identifiant soit "/1" pour forward soit "/2" pour reverse.
+Il n'existe pas d'extension de fichier standard pour les fichiers FASTQ, les extensions ".fastq" et ".fq" sont cependant les plus fréquemment utilisées. \\
 
-Il n'existe pas d'extension de fichier standard pour les fichiers FASTQ, les extensions ".fastq" et ".fq" sont cependant les plus fréquemment utilisées. 
+L'identifiant du read est parfois suivit d'un "/1" ou d'un "/2", ce qui indique que le séquençage a été fait en paired-end (Figure 3) et que les reads ont été stockés dans un seul fichier FASTQ. Le sequençage en "paired end" signifie qu'un fragment est séquencé à la fois en 5' et en 3', donnant naissance à des reads "forward" et "reverse". \\
+Le séquençage peut également être fait un "single-end", ce qui signifie que le fragment a été séquencé à partir d'une seule direction. 
+
+\begin{center}
+ \includegraphics[scale=0.5]{sequencing.png}~\\
+\textbf{Figure 3 :} Paired-End Reads
+\end{center}
+
 
 \subsection{Le fichier de mapping SAM}
 
-Le format SAM (Sequence Alignement/Map) est un fichier texte comportant deux parties : une partie entête optionnelle (header) et une partie alignement ~\cite{SAM}.\\
+Dans le cas d'analyse de génome entier ou d'exome, suite au séquençage, on effectue une étape d'alignement des reads obtenus contre un génome de référence. Cet alignement est fait par BWA~\cite{BWA}. Il est résulte un fichier d'alignement permettant de stocker les alignements de séquence sur la séquence de référence, le format SAM~\cite{SAM}. \\
+
+Le format SAM (Sequence Alignement/Map format) est un fichier texte comportant deux parties : une partie entête optionnelle (header) et une partie alignement.\\
 
 L'entête, si elle est présente, doit obligatoirement être placée avant la partie alignement. Chaque ligne de la partie entête commence par le symbole "@", c'est ce qui la différencie de la partie alignement. \\
-\clearpage
-Un exemple : 
-\begin{center}
- \includegraphics[scale=0.7]{sam.png}~
-\end{center}
-Dans cet exemple, la partie entête comprend deux lignes. Une première ligne débutant par "@HD", ce tag correspond toujours à la première ligne de l'entête si l'header est présent, le tag "VN" permet d'indiquer la version du format SAM, et "SO" indique l'ordre de sortie des lignes d'alignement. Ici l'option est "coordinate", donc la clé principale de tri est le nom de la séquence alignée, et la clé mineure est la position. \\
-La deuxième ligne de l'entête débute par "@SQ", cette ligne doit être présente si il y a des reads mappés ; elle décrit les références des séquences. Le tag "SN" correspond au nom de la séquence de référence, et "LN" à sa longueur. \\
 
-En ce qui concerne la partie alignement, cette étape consiste à placer les reads sur une séquence de référence, dans notre cas le génome humain. Le logiciel d'alignement BWA place toutes les positions potentielles du forward et du reverse et choisit ensuite la meilleure position possible. Pour un "bon mapping", le forward et le reverse doivent se faire face et doivent également être séparés d'environ 300 bases (les reads faisant chacun en général 100 bases) (illustration 1). 
- \begin{center}
- \includegraphics[scale=0.5]{alignement.png}~\\
- \underline{Illustration 1 :}
- Exemple d'alignement.\\
- \end{center}
- \begin{center}
- \end{center}
- Au final, dans un fichier BAM, chaque ligne d'alignement est constituée de 11 colonnes minimum, comportant des informations essentielles sur la qualité de l'alignement.   
+Un exemple de fichier : \\
+ \includegraphics[scale=0.6]{sam.png}~\\
+Dans cet exemple, la partie entête comprend trois lignes. Une première ligne débutant par "@HD", ce tag correspond toujours à la première ligne de l'entête si l'header est présent, le tag "VN" permet d'indiquer la version du format SAM, et "SO" indique l'ordre de sortie des lignes d'alignement. Ici l'option est "coordinate", donc la clé principale de tri est le nom de la séquence alignée, et la clé mineure est la position. \\
+La deuxième ligne de l'entête débute par "@SQ", cette ligne doit être présente si il y a des reads mappés ; elle décrit les références des séquences. Le tag "SN" correspond au nom de la séquence de référence, et "LN" à sa longueur. \\
+Et la dernière ligne commence par le tag "@RG" (Read Group), cette ligne donne des renseignements sur les groupes de reads. Le tag ID correspond à un identifiant qui se doit unique pour chaque groupe. Le tag SM donne le nom de l'échantillon, et le tag PL, la technologie utilisée produire ces reads, ici Illumina. \\
+
+En ce qui concerne la partie alignement, chaque ligne est composée de 11 colonnes minimum, comportant des informations essentielles sur la qualité de l'alignement.   \\
   \begin{center}
- \textbf{ \includegraphics[scale=0.7]{specification.png}~}
-  \end{center}
+  \textbf{ Tableau 1 : }Description des lignes d'alignements du fichier SAM 
+    \end{center}
+      \begin{center}
+  \includegraphics[scale=0.7]{specification.png}~
+    \end{center}
 \begin{enumerate}
 \item QNAME :	le nom du read.
 \item FLAG  :	code numérique binaire, permettant de décrire l'alignement du read par rapport à la séquence référence. La description de ce code se trouve dans la spécification du format SAM~\cite{SAM}.
 \item RNAME :	Le nom de la séquence de référence.
-\item POS	: correspond à la première base de la séquence de référence -1 qui s'aligne avec le read. Par exemple : la première base de la séquence de référence à pour coordonnée 1. Si un read est non mappé, sa valeur de POS est égale à 0.
-\item MAPQ  :	le score de qualité de l'alignement, égale à -10$\log_{10}$ de la probabilité que la position de l'alignement est fausse. 
-\item CIGAR :	code permettant de décrire plus précisément l'alignement, ce code est également expliqué dans la spécification du format SAM~\cite{SAM}.
-\item RNEXT	: nom du read reverse qui lui est associé (le mate) RNEXT est égal à ‘=’, s'ils ont le même nom.
-\item PNEXT	: la position du read reverse qui lui est associé.
-\item TLEN	la distance entre la séquence et son mate.
-\item SEQ	: la séquence nucléotidique.
-\item QUAL : la qualité de l'alignement (codé en ASCII).
+\item POS	: correspond à la première base de la séquence de référence qui s'aligne avec le read. Par exemple : la première base de la séquence de référence à pour coordonnée 1. Si un read est non aligné sur la séquence de réference, sa valeur de POS est égale à 0 et son flag est qualifié de "unmapped" (non mappé). 
+\item MAPQ  :	le score de qualité de l'alignement, égale à -10$\log_{10}$ de la probabilité que la position de l'alignement est fausse. Une valeur de MAPQ de 255 indique que la qualité n'est pas disponible. Et zéro correspond à la plus faible qualité possible. 
+\item CIGAR :   (Compact Idiosyncratic Gapped Alignment Report) est un code permettant de décrire plus précisément l'alignement, ce code est également expliqué dans la spécification du format SAM~\cite{SAM}.
+\item RNEXT	: le nom du "mate" qui est associé à ce read (en cas de séquençage paired-end). Si RNEXT est égal à ‘=’, ceci signifie que le mate est aligné sur la même séquence de référence que le read. Et si le RNEXT est égal à '*', cela signifie que le read n'a pas de "mate". 
+\item PNEXT	: la position du "mate" qui est associé à ce read. Un PNEXT égale à '0' signifie que l'information n'est pas disponible. 
+\item TLEN : la distance entre la read et son mate. \\\\
+\includegraphics[scale=0.55]{tlen.png}~
+  \begin{center}\textbf{ Figure 4 : }Schéma d'un read et de son mate aligné sur la même séquence de référence     \end{center} 
+\item SEQ	: la séquence nucléotidique, issu du fichier FASTQ.
+\item QUAL : la qualité de l'alignement (codé en ASCII), issu du fichier FASTQ.
+\item META : Métadonnées optionnelles. 
 \end{enumerate}
 \subsection{le fichier BAM}
-Le fichier BAM correspond à la forme binaire du fichier SAM. Le fichier BAM n'est donc pas directement lisible. La conversion du format SAM vers le format BAM est possible grâce au logiciel Samtools. Et la lecture des fichiers BAM est aussi possible par l'intermédiaire de Samtools grâce à l'option "samtools view". 
+Le fichier BAM correspond à la forme binaire du fichier SAM. Le fichier BAM n'est donc pas directement lisible. La conversion du format SAM vers le format BAM est possible grâce au logiciel Samtools~\cite{SAM2}. Et la lecture des fichiers BAM est aussi possible par l'intermédiaire de Samtools grâce au sous-programme "samtools view". 
  \\
 \section{Le programme Contalign}
-
-Contalign est un programme en C prenant comme entrée un fichier BAM comportant une entête avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads (Read Group), et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte en aucun cas le fichier d'origine.  \\
-Contalign dépend de 3 librairies (Samtools, BWA et Htslib), c'est-à-dire qu'il utilise certaines de leurs fonctions et structures. La librairie Samtools permet de gérer l'ouverture et l'extraction des données contenues dans les fichiers BAM ~\cite{SAM2}. Alors que BWA, permet de réaliser l'alignement des reads contre les références de conta minants ~\cite{BWA}. 
+Contalign est un programme en C prenant comme entrée un fichier BAM comportant une entête avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads, et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte donc en aucun cas le fichier d'origine (Figure 5). L'intérêt serait que l'on puisse par la suite intégrer ce programme au sein d'un pipeline d'analyse, afin de pouvoir obtenir un rapport de la qualité du séquençage. 
+ 
+\begin{center}
+\includegraphics[scale=0.4]{programme.png}~
+\end{center}
+\begin{center}
+\textbf{ Figure 5 : }Schéma descriptif du fonctionnement du programme Contalign
+\end{center}
+Contalign dépend de 2 librairies (Samtools et BWA), c'est-à-dire qu'il utilise certaines de leurs fonctions et structures. La librairie Samtools permet de gérer l'ouverture et l'extraction des données contenues dans les fichiers BAM~\cite{SAM2}. Alors que BWA, permet de réaliser l'alignement des reads contre les références de conta minants~\cite{BWA}. 
 \\
 \subsection{Les arguments d'entrées du programme}
 
@@ -190,7 +207,7 @@ Ce programme est fourni avec un fichier Makefile permettant de compiler tout le 
 \begin{lstlisting} 
 make 
 \end{lstlisting} 
-Contalign est compilable sous Linux, mais utilise des librairies particulières (Samtools, htslib, BWA), ces librairies se téléchargent automatiquement avant la compilation du programme. Ce téléchargement nécessite "Wget" qui est un programme libre, non-interactif (c'est-à-dire qu'il peut travailler en arrière-plan), de téléchargement de fichiers depuis le Web. \\ Les sources du programme fournissent également un dossier "test" contenant un second fichier Makefile nécessitant également l'installation de Wget. Cet autre fichier Makefile contient différents tests permettant d'explorer toutes les options du programme, ainsi que le téléchargement de fichier BAM et des références de contaminants. Les fichiers BAM de tests sont téléchargeables depuis le site du NCBI et correspondent à des données du Projet 1 000 Génomes. 
+Contalign est compilable sous Linux, mais utilise des librairies particulières (Samtools, htslib, BWA), ces librairies se téléchargent automatiquement avant la compilation du programme. Ce téléchargement nécessite "Wget" qui est un programme libre de téléchargement de fichiers depuis le Web. \\ Les sources du programme fournissent également un dossier "test" contenant un second fichier Makefile nécessitant également l'installation de Wget. Cet autre fichier Makefile contient différents tests permettant d'explorer toutes les options du programme, ainsi que le téléchargement de fichier BAM et des références de contaminants. Les fichiers BAM de tests sont téléchargeables depuis le site du NCBI et correspondent à des données du Projet 1 000 Génomes. 
 \subsection{Le mode d'emploi du programme}
 
 Contalign propose différentes options  :
@@ -200,27 +217,28 @@ Contalign propose différentes options  :
 \item La sauvegarde du résultat de l'alignement des reads non mappés sur la nouvelle référence de contaminant,
 \item Le choix d'une valeur minimum de qualité de l'alignement (mapq).
 \end{itemize}
-
+\clearpage
 Afin d'analyser un fichier BAM, il suffit de rentrer en ligne de commande :
-
 \begin{lstlisting}
-./contalign -r reference.fa -o outputfile.txt sample.bam > sample.bam
+./contalign -r reference.fa -o outputfile.txt sample.bam 
 \end{lstlisting}
 
-Cette ligne de commande permet d'analyser l'échantillon "sample.bam", en alignant les reads non mappés de l'échantillon sur les contaminants référencés dans le fichier "reference.fa" et d'obtenir un rapport du nombre de reads non mappés et des éventuels contaminants (outputfile.txt). \\
+Cette ligne de commande permet d'analyser l'échantillon "sample.bam", en alignant les reads non mappés de l'échantillon sur les contaminants référencés dans le fichier "reference.fa" et d'obtenir un rapport du nombre de reads non mappés et des éventuels contaminants de l'échantillon (outputfile.txt). \\
+
 Il est possible d'analyser plusieurs fichiers BAM en une seule ligne de commande, le programme donnera un rapport unique contenant le nombre de reads non mappés et les contaminants par échantillons. 
 \begin{lstlisting}
 ./contalign -r reference.fa -o outputfile.txt sample.bam sample2.bam sample3.bam
-\end{lstlisting}
-Dans ce cas, il est inutile de préciser un fichier de sortie. 
-\clearpage
-
-Contalign gère également les fichiers ayant une extension ".list", c'est-à-dire un fichier contenant une liste de path vers des fichiers BAM (un path par ligne). Ce qui permet d'analyser un nombre beaucoup plus important de fichiers BAM que si on les rentrait un par un en ligne de commande. \\
-\\
-Pour obtenir un rapport complet des reads non mappés sur le génome humain mais qui s'alignent sur une référence de contaminant : 
+\end{lstlisting} 
+~\\
+Contalign gère également les fichiers ayant une extension ".list" (nomenclature utilisée par GATK~\cite{gatk}), c'est-à-dire un fichier contenant une liste de path vers des fichiers BAM (un path par ligne). Ce qui permet d'analyser un nombre beaucoup plus important de fichiers BAM que si on les rentrait un par un en ligne de commande.
+\begin{lstlisting}
+find -name "*.bam" > bam.list
+\end{lstlisting} 
+~\\
+Le programme propose à l'utilisateur de pouvoir sauvegarder un rapport complet des reads non mappés sur le génome humain qui s'alignent sur une référence de contaminant, grâce à l'option " -c " :
 \begin{lstlisting}
 ./contalign -r reference.fa -o outputfile.txt -c fullreport.txt sample.bam > sample.bam\end{lstlisting}
-
+~\\
 Le fichier fullreport.txt comprend 5 colonnes :
 \begin{enumerate}
 \item le nom du reads,
@@ -229,10 +247,12 @@ Le fichier fullreport.txt comprend 5 colonnes :
 \item sa séquence,
 \item la qualité de l'alignement.
 \end{enumerate}
-
-Exemple de rapport complet : \\\\
- \includegraphics[scale=0.57]{full.png}
- 
+\clearpage
+Exemple de rapport complet : 
+\begin{center}
+ \includegraphics[scale=0.45]{fullreport.png}
+\end{center}
+~\\
 Afin de sauvegarder un fichier fastq des reads non mappés des échantillons : 
 \begin{lstlisting}
 ./contalign -r reference.fa -o outputfile.txt -s savefastq.fastq bam.list \end{lstlisting}
@@ -244,43 +264,47 @@ Et dernière option, il est également possible de spécifier une valeur minimum
 \subsection{Principe de fonctionnement du programme}
 
 
-Le programme gère l'ouverture du fichier BAM donné en entrée, copie son entête et récupère le nom de tous les groupes de reads et des échantillons. Il stocke toutes ces informations dans deux structures (SampleName et Group). \\
-Le nom de l'échantillon et du read group doit être unique. Afin de vérifier qu'ils le sont nous avons utilisé les fonctions qsort et bsearch.  \\La fonction qsort est un algorithme de tri selon un certain critère, ici le critère porte sur le nom, trie par ordre alphabétique. La fonction bsearch permet de rechercher un élément clé dans un tableau trié. Ces deux fonctions sont définies dans la librairie standard (stdlib.h). L'utilisation de qsort à la place d'une bouche "for" permet d'augmenter la rapidité du programme, notamment si nous sommes confrontés à de nombreux échantillons.\\
+Le programme gère l'ouverture du fichier BAM donné en entrée, et récupère le nom de tous les groupes de reads et des échantillons. Il stocke toutes ces informations dans deux structures (SampleName et Group). Le nom des l'échantillons et des "Read Group" doivent être unique, afin de le vérifier, nous avons utilisé les fonctions qsort et bsearch. 
+
+La fonction qsort est un algorithme de tri selon un certain critère, ici le critère porte sur le nom, trie par ordre alphabétique. La fonction bsearch permet de rechercher un élément clé dans un tableau trié. Ces deux fonctions sont définies dans la librairie C standard (stdlib.h). L'utilisation de qsort à la place d'une bouche "for" permet d'augmenter la rapidité du programme, notamment si nous sommes confrontés à de nombreux échantillons.\\
 
 
-Ensuite, il parcourt les lignes d'alignements du fichier BAM ; et pour chaque ligne il regarde le flag associé. Si le flag indique que le read n'est pas mappé, il récupère le nom de son read group, sa séquence, et sa qualité qu'il stocke dans une structure nommée Fastq. Une fois que le programme stocke 1 000 structures Fastq (soit les informations de 1 000 reads non mappés). Ces reads sont envoyés à une fonction "align" inspiré du code "example.c" des sources de BWA. \\
+Ensuite, le programme parcourt les lignes d'alignements du fichier BAM ; et pour chaque ligne il regarde le flag associé. Si le flag indique que le read n'est pas mappé, il récupère le nom de son read group, sa séquence, et sa qualité qu'il stocke dans une structure nommée Fastq. Une fois que le programme stocke 1 000 structures Fastq (soit les informations de 1 000 reads non mappés), ces reads sont envoyés à une fonction "align" inspiré du code "example.c" des sources de BWA. \\
 Chaque read non mappé est confronté à la liste des contaminants. Si BWA ne détecte aucun alignement possible, on passe au read suivant. Mais si un alignement est possible, il stocke les informations de cet alignement dans une structure nommée "Contaminant". \\ 
-Nous avons pu nous rendre compte, durant nos tests, que plusieurs alignements étaient possibles pour un read. Par exemple un read peut s'aligner sur un contaminant avec un score d'alignement (mapq) faible et s'aligner sur un autre contaminant avec un mapq plus élevé. Nous avons donc rajouté un filtre à ce niveau. \\
-Initialement le mapq d'un read est égale à zéro (valeur d'un read non mappé) et à chaque rencontre d'un alignement possible, si la valeur de mapq est supérieure à la précédante, les renseignements du contaminants sont remplacés. 
 
-Une fois que les 1 000 reads ont été soumis à l'alignement, le programme libère les 1000 structures Fastq, ceci permet d'optimiser la mémoire et d'augmenter la rapidité du programme. Si le nombre de reads non mappés n'est pas un multiple de 1000, le restant des reads sont tout de même envoyé à la fonction "align" à la fin et sont de même libéré de la mémoire. \\
+Nous avons pu nous rendre compte, durant nos tests, que plusieurs alignements étaient possibles pour un read. Par exemple un read peut s'aligner sur un contaminant avec un score d'alignement (mapq) faible et s'aligner sur un autre contaminant avec un mapq plus élevé. Nous avons donc rajouté un filtre à ce niveau. \\
+Initialement le mapq d'un read est égale à zéro (valeur d'un read non mappé) et à chaque rencontre d'un alignement possible, si la valeur de mapq est supérieure à la précédante, les renseignements du contaminants sont remplacés. \\
+
+Une fois que les 1 000 reads ont été soumis à l'alignement, le programme libère la mémoire allouée, ceci permet d'optimiser la mémoire et d'augmenter la rapidité du programme. Si le nombre de reads non mappés n'est pas un multiple de 1000, le restant des reads sont tout de même envoyés à la fonction "align" avant la fin du programme. \\
 
 
 Par la suite, on utilise de nouveau la fonction qsort, afin de trier les contaminants détectés dans un ordre décroissant de présence dans les échantillons. Puis le programme écrit le rapport final, qui contient une première ligne avec le nom de l'échantillon et le nombre de reads initialement non mappés de cet échantillon ; et les lignes suivantes comportent le pourcentage de présence des contaminants et l'identifiant des contaminants détectés.\\
 
 Exemple de rapport contenant 2 échantillons différents :  \begin{center}
- \includegraphics[scale=0.6]{rapport.png}~\\ \end{center}
- 
-Dans cet exemple, la première colonne correspond au pourcentage de contaminants sur le nombre total de reads et la 2ème colonne au ratio correspondant. La 3ème colonne correspond au pourcentage de contaminants sur le nombre de reads non mappés de l'échantillon, et la 4ème colonne au ratio. \\
+ \includegraphics[scale=0.4]{rapport.png}~\\ \end{center}
+
+Un exemple d'interprétation de ce rapport : Dans l'échantillon HG00127, il y a eu 175 reads non mappés détectés et seulement 1 read qui s'est aligné sur du "Mycoplasma crocodyli". \\
 
 A la fin du programme, nous avons fait attention de libérer toute la mémoire allouée par les fonctions du type "malloc", "calloc, "realloc" ou encore "strdup" ; ainsi qu'à la fermeture de tous les fichiers utilisés.
 
-/* Faire un schéma des différentes structures utilisées ? */ 
 
 \subsection{Difficultés conceptuelles rencontrées}
 
-Afin de pouvoir ouvrir et extraire les informations des fichiers BAM donnés en entrée du programme, nous avons utilisé des fonctions de la librairie Samtools. Une des premières difficultés rencontrés lors de ce stage fût de pouvoir trouver les fonctions pouvant nous servir et de comprendre leur fonctionnement. \\
-
-De plus, afin de pouvoir lancer en une seule ligne de commande l'analyse de plusieurs fichiers BAM, il a fallu complètement remodeler le corps de la fonction main, et créer une structure comportant tous les arguments nécessaires à l'analyse d'un fichier. Ainsi la fonction main permet seulement de remplir cette structure et d'envoyer les informations à la fonction principale du programme "runApp()". \\Pour la clarté du code, nous avons créé un second fichier "runcontalign.c" contenant toutes les fonctions principales du programme permettant de trouver les reads non mappés et de les aligner contre la référence de contaminants. \\
-\clearpage
-Nous avons rencontré un problème lorsque l'on désirait analyser 2 fois le même fichier BAM successivement, sur une même ligne de commande. Dans le rapport final, on remarquait que les reads s'alignaient sur des contaminants différents (illustration 2). Hors en toute logique, nous aurions dû obtenir deux fois le même rapport.
+Nous avons rencontré un problème lorsque l'on désirait analyser 2 fois le même fichier BAM successivement, sur une même ligne de commande :
+\begin{lstlisting}
+./contalign -r reference.fa -o outputfile.txt sample.bam sample.bam 
+\end{lstlisting} 
+ ~\\
+ Dans le rapport final, on remarquait que les reads s'alignaient sur des contaminants différents (Figure 6). Hors en toute logique, nous aurions dû obtenir deux fois le même rapport.
 \begin{center}
  \includegraphics[scale=0.6]{bug.png}~\\
- \underline{Illustration 2 :} Erreur lors de l'analyse d'un fichier BAM deux fois successivement
+ \textbf{Figure 6 :} Erreur lors de l'analyse d'un fichier BAM deux fois successivement
  \end{center}
+ ~\\
 Suite à quelques recherches, nous nous sommes rendu compte que les reads s'alignant sur 2 contaminants différents, présentaient le même score de mapping pour les deux alignements.\\
-En regardant les sources de BWA, nous avons trouvé l'existence d'une fonction "srand48()" qui est une fonction de randomisation,  induisant que BWA ne présente pas les contaminants dans le même ordre à chaque fois aux reads, et ne garde que le premier alignement ayant le score le plus élevé. Donc pour d'éviter cet effet de randomisation, à chaque boucle on initialise la fonction srand48() à 0, ce qui fait que l'on rencontre les contaminants dans le même ordre à chaque fois. \\
-
+~\\
+En regardant les sources de BWA, nous avons trouvé l'existence d'une fonction "srand48()" qui est une fonction de randomisation,  induisant que BWA ne présente pas les contaminants dans le même ordre à chaque fois aux reads. BWA ne garde que le premier alignement ayant le score le plus élevé. Donc pour d'éviter cet effet de randomisation, à chaque boucle on initialise la fonction srand48() à 0, ce qui permet de présenter les contaminants toujours dans le même ordre aux reads. \\
+~\\
 
 De plus, BWA trouvait que certains reads s'alignaient sur des contaminants avec une qualité d'alignement (mapq) égale à 0. Pourtant une qualité égale à 0 signifie que le read est non mappé. Donc nous avons rajouté une option "mimMapq" donnant la possibilité à l'utilisateur de choisir à quel niveau de qualité d'alignement, il considére que le read est bien aligné sur le contaminant. Si cette option n'est pas indiquée, par défaut on fixe le mapq minimum à 10.
  
@@ -291,12 +315,13 @@ De plus, BWA trouvait que certains reads s'alignaient sur des contaminants avec 
 
 Une étape importante de ce stage fut de déterminer une liste de contaminants potentiels pouvant correspondre aux reads non mappés identifiés.\\ 
 
-De part nos connaissances concernant les différentes méthodes de séquençage. Une des premières idées de contaminants envisageables fût des adapteurs, primeurs, plasmides et vecteurs utilisés lors des manipulations. NCBI propose une base contenant une centaine de références de ce genre de contaminant nommée UniVec~\cite{UniVec}. L'inconvénient majeur de cette base est sa redondance. \\
+De part nos connaissances concernant les différentes méthodes de séquençage. Une des premières idées de contaminants envisageables fût des adapteurs, primeurs, plasmides et vecteurs utilisés lors des manipulations. NCBI propose une base contenant une centaine de références de ce genre de contaminant nommée UniVec~\cite{UniVec}. L'inconvénient majeur de cette base est sa redondance. (DE QUOI ??)\\
 
 Un article venant d'être récement publié traite de la contamination des données, issues du séquençage Illumina, par des phages phi-X~\cite{phiX}. Les phages phi-X sont des bactériophages présentant un ADN simple brin, et ayant un petit génome (5386 nucléotides). En raison de ses propriétés, les phages phi-X sont fréquemment utilisés comme contrôles lors de séquençage Illumina. \\ 
-Dans cet article, ils déclarent que plus de 1 000 génomes dans des bases de données publiques seraient contaminés par des phi-X et ainsi qu'environ 10\% des génomes publiés dans la littérature. Nous avons donc trouvé intéressant de rajouter ces génomes à notre liste de contaminants.\\
+Dans cet article, les auteurs déclarent que plus de 1 000 génomes dans des bases de données publiques seraient contaminés par des phi-X et ainsi qu'environ 10\% des génomes publiés dans la littérature. Nous avons donc rajouter ces génomes à notre liste de contaminants.\\
 
-Suite à quelques recherches bibliographiques, nous sommes tombés sur un article de William B Langdon~\cite{mycoplasme}, qui concluait que 7\% des échantillons du projet 1000 génomes étaient contaminés par des mycoplasmes. Nous avons trouvé intéressant de pouvoir comparer ces résultats à notre programme. Donc nous avons rajouté les 30 mycoplasmes qu'ils ont pu détecter à notre base \\
+Un article, paru dans le journal BioData Mining~\cite{mycoplasme}, conclut que 7\% des échantillons du projet 1000 génomes sont contaminés par des mycoplasmes. L'auteur fournit une liste de 30 mycoplasmes que son équipe a pu détecté. Nous les avons donc également rajouter à notre base afin de pouvoir comparer leurs résultats aux notres.\\ 
+L'inconvénient de cette liste de mycoplasmes est sa redondance. Toutes ces espèces étant proches, elles présentent certaines homologies de séquences qui rendent la nouvelle base plus redondante. \\
 
 Lors d'une réunion, nous avons discuté de mon sujet de stage avec un doctorant en bioinformatique au laboratoire, Adrien Leger, qui lui aussi s'intéresse à la détection éventuelle de contaminant dans des données NGS. Lors de ces travaux, il a constitué une liste de contaminants détectés dans ces données qu'il m'a transmise, et que j'ai pu intégrer à ma précédente liste.\\
 
@@ -306,26 +331,26 @@ Afin de pouvoir collecter les séquences génomiques de ces différents contamin
 
 \subsection{Sur les données du projet 1000 Génomes}
 
-Pour la phase de test du programme, nous avons commencé par le tester sur des données du projet 1 000 Génomes, afin de voir si on arrivait au même conclusion que l'article de William B Langdon ~\cite{mycoplasme}. Nous avons excuté Contalign sur un grand échantillon (environ 100Go, 24 millions de reads non mappés) et nous avons obtenu 54758 reads se mappant sur du "Mycoplasma hyopneumoniae J" et 24290 sur du "Mycoplasma pulmonis". Ce résultat confirme plutôt dans le bon sens cet article. \\
+Nous avons testé le programme sur des données du projet 1 000 Génomes, afin de voir si on arrivait au même conclusion que l'article de William B Langdon~\cite{mycoplasme}. Nous avons excuté Contalign sur un grand échantillon (environ 100Go, 24 millions de reads non mappés) et nous avons obtenu 54758 reads se mappant sur du "Mycoplasma hyopneumoniae J" et 24290 sur du "Mycoplasma pulmonis". Nous avons réitérer cette expérience sur plusieurs fichiers, et nous arrivons toujours au même résultat. Ceci confirme plutôt dans le bon sens cet article. \\
 
 Afin de vérifier nos résultats, nous avons effectué des nucléotides BLAST de certains de nos reads pour voir si BLAST nous trouvait les mêmes alignements. Nous nous sommes rendu compte que ce n'était pas forcément le cas pour tous les reads. \\
 
-Suite à cela, nous avons remarqué que les reads présentant des séquences poly A avaient tendance à se mapper sur du mycoplasme, ce sont donc des faux positifs. Ce qui expliquerait pourquoi BLAST ne trouve pas les mêmes alignements. \\
+Suite à cela, nous avons remarqué que les reads présentant des séquences poly A avaient tendance à se mapper sur du mycoplasme. En regardant les séquences des mycoplasmes, nous avons remarqué qu'elles présentaient aussi des séquences poly A. Ces alignements sont donc des faux positifs, ce qui expliquerait pourquoi BLAST ne trouve pas les mêmes alignements. \\
 
-En perspective, on pourrait intégrer au programme une fonction qui permetterait de déterminer la complexité de la séquence du read non mappé. Ce read serait envoyé à BWA pour subir l'alignement uniquement si sa séquence dépasse un certain seuil de complexité. Une fonction NCBI nommé DUST permetrait ce filtre, mais en considérant la courte durée de ce stage, c'est une étape que je ne peux effectuer à temps, mais qui serait très intéressante à intégrer. 
+En perspective, on pourrait intégrer au programme une fonction qui permetterait de déterminer la complexité de la séquence du read non mappé. Ce read serait envoyé à BWA pour subir l'alignement uniquement si sa séquence dépasse un certain seuil de complexité. Une programme du NCBI nommé DUST permetrait ce filtre, mais en considérant la courte durée de ce stage, c'est une étape que je ne peux effectuer à temps, mais qui serait très intéressante à intégrer. 
 
 \subsection{Sur les données du laboratoire}
 
-Pour le test sur les données du laboratoire, nous avons utilisé le programme DUST du NCBI sur les séquences des contaminants. Ceci a permis de masquer les séquences des contaminants contenants des poly A, les adénines étant remplacés par des nucléotides N (nucléotide non défini).
+Pour le test sur les données du laboratoire, nous avons utilisé le programme DUST du NCBI sur les séquences des contaminants. Ceci a permis de masquer les séquences peu complexes des contaminants, les nucléotides étant remplacés par des N (nucléotide non défini).
 
 Cette méthode diminue le nombre de contaminants détectés, mais améliore la qualité de la détection, on se retrouve avec moins de faux positifs. 
 
-Pour commencer nous avons lancé l'analyse de 3 génomes complets, mais lorsque nous avons étudié le rapport final contenant le nombre de contaminants détectés, nous nous sommes rendu compte d'une erreur (Illustration 3). Le nombre de reads non mappés par échantillon était plus grand que le nombre total de reads. 
+Pierre a lancé l'analyse de 3 génomes complets, mais lorsque nous avons étudié le rapport final contenant le nombre de contaminants détectés, nous nous sommes rendu compte d'une erreur (Figure 7). Le nombre de reads non mappés par échantillon était plus grand que le nombre total de reads. 
 \begin{center}
  \includegraphics[scale=0.4]{bug2.png}~\\
- \underline{Illustration 3 :} Problème lors du comptage du nombre de reads
+ \textbf{Figure 7 :} Problème lors du comptage du nombre de reads
  \end{center}
-Ceci provient du fait que j'avais déclaré le compteur du nombre de read comme étant un type entier (int). Pour de telles données, il est plus judicieux d'utiliser un type long comme compteur. Un type int fait une taille de $2^3^2$ byte alors qu'un type long a une taille de $2^6^4$ byte. "16777216" est donc le maximum qu'il pouvait atteindre, et non le nombre réel de reads.
+Ceci provient du fait que j'avais déclaré le compteur du nombre de read comme étant un type entier (int). Pour de telles données, il est plus judicieux d'utiliser un type long comme compteur. Un type int fait une taille de $2^3^2$ (=4,294,967,295) byte alors qu'un type long a une taille de $2^6^4$ (=9,223,372,036,854,775,808) byte. Le nombre de reads total indiqué ci-dessus est donc le maximum qu'il pouvait atteindre, et non le nombre réel de reads dans ce fichier. \\
 
 Tout de fois, les résultats restent tout à fait interprétables. En tête de liste pour les 3 génomes, on retrouve une contamination par Escherichia coli (bactérie intestinale, très commune chez l'humain). Le reste étant essentiellement aussi des bactéries : Propionibacterium acnes, Klebsiella oxytoca, ou encore Pseudomonas aeruginosa. 
 
