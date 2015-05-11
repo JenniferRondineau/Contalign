@@ -17,13 +17,19 @@
 \input{pageDeGarde.tex} % page de garde
 
 \textbf{Titre du stage :} \\\\
+%pl20150511 detection de contaminants ... données de sequençahe nouvelle génération
+
 Détection d'éventuels contaminants dans des données NGS à l'aide d'un programme en C utilisant l'interface de programmation de BWA. \\
 \\
 \textbf{Résumé :} \\
+%pl20150511 alignement de sequence -> alignement de short reads
 
 Dans le cadre d'analyse de génome entier et d'exome en NGS (Séquençage Nouvelle Génération), une des étapes clés de l'analyse des données consiste en l'alignement des séquences sur une séquence de référence. Cette étape génère des fichiers de type BAM, dans lesquels il est possible de détecter des reads qui ne s'alignent pas sur la séquence de référence. \\
 Notre objectif était de créer un outil en C permettant d'identifier au sein d'un fichier BAM, les reads non mappés sur le génome humain, et tenter de les identifier sur d'éventuels contaminants (organismes étrangers tels que des phages phi-X, des mycoplasmes, E. Coli...). \\
 Cet outil, Contalign, prend en entrée des fichiers BAM et aligne les reads non mappés sur le génome humain, sur une deuxième référence contenant des génomes de divers contaminants. Il produit un rapport contenant le nombre de reads non mappés par échantillon et un bilan des contaminants éventuellement détectés. \\
+
+%pl20150511 propositions -> format
+
 Contalign offre plusieurs propositions de sauvegarde, notamment la sauvegarde des reads non mappés dans un fichier FASTQ, ou encore une sauvegarde du rapport de l'alignement des reads sur les contaminants.\\
 Afin de pouvoir lire et traiter les informations des fichiers BAM, nous avons utilisé la librairie Samtools, et afin de pouvoir réaliser l'alignement des reads non mappés sur la référence des contaminants, nous avons utilisé la librairie de l'aligneur BWA. Contalign est disponible librement sur le repositoire git suivant : \begin{center} https://github.com/JenniferRondineau/masterm2.git \end{center}
 Les premiers tests du programme sur les données du laboratoire ont permis de détecter surtout des contaminations bactériennes, essentiellement par  Escherichia Coli.\\\\
@@ -32,14 +38,15 @@ Les premiers tests du programme sur les données du laboratoire ont permis de d�
 \clearpage
 
 \textbf{Title :} \\\\
+%pl20150511 BWA application programming interface
 Detecting potential contaminants in NGS data with a C program using the BWA programming interface. \\
 \\
 \textbf{Abstract :} \\
 
-In the context of whole genome and exome sequencing (Next Generation Sequencing), a key step for data analysis consists of the sequence alignment against a reference sequence. This step generates a BAM file containing the information of this alignment. Following this analysis, it's possible to detect reads that don't align with the reference sequence. \\
+In the context of whole genome and exome sequencing (Next Generation Sequencing), a major step for data analysis consists of the sequence alignment against a reference sequence. This step generates a BAM file containing the information of this alignment. Following this analysis, it's possible to detect reads that don't align with the reference sequence. \\
 Our target was to create a C tool to identify unmapped reads in a BAM file, and try to identify why these reads are unmapped and if they can possibly be due to contamination (such as Phi-X phages, mycoplasma, E.coli...).\\
-This tool, Contalign, takes as input BAM files and aligns unmapped reads to the human genome, against a second reference containing genomes of various contaminants. It produces a report containing the number of unmapped reads per sample and a review of contaminants detected. \\
-Contalign provides various backup proposals, including backup of unmapped reads in a FASTQ file, or a backup of the report of the alignment of reads on contaminants. Order to read and process information BAM files, we used the Samtools library, and in order to achieve alignment of unmapped reads against the reference contaminant, we used the library of the BWA aligner. Contalign is freely available from this git repository : \begin{center} https://github.com/JenniferRondineau/masterm2.git \end{center}
+This tool, named Contalign, takes as input BAM files and aligns unmapped reads to the human genome, against a second reference containing genomes of various contaminants. It produces a report containing the number of unmapped reads per sample and a review of the detected contaminants. \\
+Contalign provides various backup proposals, including backup of unmapped reads in a FASTQ file, or a backup of the report of the alignment of reads on contaminants. Order to read and process information BAM files, we used the Samtools library, and in order to achieve alignment of unmapped reads against the reference contaminant, we used the library of the BWA aligner. Contalign is open-source and is freely available from this git repository : \begin{center} https://github.com/JenniferRondineau/masterm2.git \end{center}
 Initial tests of the program on laboratory data have shown a possible bacterial contaminations, mainly by Escherichia Coli.\\\\
 
 \textbf{Keywords :} Next-Generation Sequencing, BAM, BWA, Samtools, Contamination.
@@ -51,9 +58,13 @@ Initial tests of the program on laboratory data have shown a possible bacterial 
 \section{Introduction}
 
 Le séquençage à haut débit produit une masse importante de données, qui ne sont utiles que si elles sont analysées. Ceci induit donc une mise en place d'un système de gestion et traitement de ces données. Dans le cas de séquençage de génome entier ou d'exome, à la sortie du séquenceur, une des étapes clés de l'analyse correspond à l'alignement des séquences sur une séquence de référence, afin de pouvoir contrôler la qualité du séquençage. \\
-Suite à cet alignement, il est possible de détecter des reads dit non mappés, c'est-à-dire qui ne s'alignent pas sur le génome de référence. Ces reads peuvent correspondre à des régions dupliquées, inconnues, de mauvaises qualités ou alors éventuellement contaminées par un organisme étranger. \\
+Suite à cet alignement, il est possible de détecter des reads dit non mappés, c'est-à-dire qui ne s'alignent pas sur le génome de référence.
+%pl20150511 mauvaise qualité des reads, pas de la reference
+Ces reads peuvent correspondre à des régions dupliquées, inconnues, de mauvaises qualités ou alors éventuellement contaminées par un organisme étranger. \\
 
-L'objectif de ce stage était de créer un outil en C permettant de déterminer si ces reads non mappés étaient essentiellement dus à des contaminations externes. Ce travail fut constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools~\cite{SAM} permettant de lire les fichiers BAM, ainsi que la librairie de BWA~\cite{BWA} permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques des éventuels contaminants. Pour cela, nous nous sommes basés sur nos connaissances et la littérature. \\\\
+L'objectif de ce stage était de créer un outil en C permettant de déterminer si ces reads non mappés étaient essentiellement dus à des contaminations externes. Ce travail fut constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences courtes (short-reads) sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools~\cite{SAM} permettant de lire les fichiers BAM, ainsi que la librairie de BWA~\cite{BWA} permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques des éventuels contaminants. Pour cela, nous nous sommes basés sur nos connaissances et la littérature. \\\\
+%pl20150511 tout ce paragraphe c'est de la discussion: "Cette analyse aurait été possibl... j'ai appris du C.. etc". En revanche 
+%pl20150511 il faut garder le schema pour expliquer ou se place l'outil dans le pipeline du labo.
 Cette analyse aurait été possible sans passer par la création de ce nouvel outil. Grâce à Samtools nous aurions pu sélectionner seulement les reads non mappés et ensuite les aligner avec BWA sur des contaminants potentiels. L'intérêt de la création de cet outil, serait de pouvoir l'intégrer au sein d'un pipeline d'analyse (Figure 1), par exemple à la sortie de BWA, afin d'obtenir un rapport de la qualité du séquençage. Ce projet me permettrait par la même occassion d'approfondir mes connaissances en programmation en C. 
 \begin{center}
 \includegraphics[scale=0.4]{illustration1.png}~\\
@@ -67,11 +78,12 @@ Pour finir, la dernière étape fût de tester ce programme sur des données du 
 
 \subsection{L'importance du séquençage du génome humain}
 
+%pl20150511 pas du subjcontif: tout cela est réel et il y a déja des application
 La connaissance du génome complet de chaque individu permettrait de nombreuses applications dans le domaine de la médecine, elle aiderait pour le diagnostic de certaines maladies humaines, qui dans de nombreux cas sont dues à des mutations génétiques. La connaissance du gène impliqué permettrait de pouvoir éventuellement soigner ou diagnostiquer ces maladies. Cela pourrait faciliter la mise au point de test diagnostics à partir de l'ADN. L'identification du gène responsable d'une maladie pourrait aussi permettre de comprendre son mécanisme d'appartion et de pouvoir la prévenir en développant de nouvelles thérapies. \\
-
+%pl20150511 d'ailleurs tu le dis là...
 Le séquençage est devenu un outil essentiel, notamment en médecine et dans le domaine de la recherche. C'est en 1977 que Sanger invente la première technique de séquençage de l'ADN, et depuis maintenant plus de 30 ans les techniques ne cessent de s'améliorer. 
 
-Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes~\cite{1000Genomes}, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de populations différentes. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques. La détermination de la séquence complète du génome humain n'étant que la première étape de son étude, il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices, on appelle cette étape l'annotation. 
+Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes~\cite{1000Genomes}, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de populations différentes. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques. La détermination de la séquence complète du génome humain n'étant que la première étape de son étude, il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices grâce à une étape d'annotation du génome. 
 
 \subsection{Principe du séquençage }
 
@@ -91,6 +103,7 @@ Toutes ces technologies se décomposent en 4 grandes étapes :
 \end{enumerate}
 \begin{center}
 \includegraphics[scale=0.4]{ngs.png}~\\
+%pl20150511 pour la technologie illumina (c'est pas pareil pour les autres) 
 \textbf{Figure 2 :} Principe du séquençage NGS
 \end{center}
 Les étapes 1 à 3 sont représentées sur cette illustration (Figure 2). Ce stage ne fut pas concentré sur ces étapes mais sur l'étape 4 : l'analyse des données, et notamment sur leur qualité.
@@ -101,10 +114,12 @@ Les étapes 1 à 3 sont représentées sur cette illustration (Figure 2). Ce sta
 
 Le séquençage d'un génome entier aboutit a des données de plusieurs millions de bases, ce qui demande l'utilisation de l'informatique pour les traiter. Ci-dessous sont décrit les principaux fichiers utilisés au cours de ce projet. \\
 
+%pl20150511 MILLIARD !!
 Les séquenceurs générent des fichiers en format FASTQ contenant des centaines de millions de petites séquences nucléiques, appelées reads, suivit d'un score de qualité associé. Le format FASTQ dérive du format FASTA, bien plus connu par la communauté scientifique. 
 
 \subsection{FASTA}
 Le format fasta est le format le plus simple pour stocker et lire les séquences. Il est composé d'une première ligne comportant un "$>$" suivit par le nom de la séquence. Les lignes suivantes contiennent l'enchainement des nucléotides. \\
+
 
 Exemple : \\
 
@@ -179,8 +194,12 @@ En ce qui concerne la partie alignement, chaque ligne est composée de 11 colonn
 \subsection{le fichier BAM}
 Le fichier BAM correspond à la forme binaire du fichier SAM. Le fichier BAM n'est donc pas directement lisible. La conversion du format SAM vers le format BAM est possible grâce au logiciel Samtools~\cite{SAM2}. Et la lecture des fichiers BAM est également possible par l'intermédiaire de Samtools grâce au sous-programme "samtools view". 
  \\
+ 
+ %pl20150511 toute la partie FASTQ/BAM :très bien
+
+
 \section{Le programme Contalign}
-Contalign est un programme en C prenant comme entrée un fichier BAM comportant une partie header avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads, et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte donc en aucun cas le fichier d'origine (Figure 5). L'intérêt serait que l'on puisse par la suite intégrer ce programme au sein d'un pipeline d'analyse, afin de pouvoir obtenir un rapport de la qualité du séquençage. 
+Contalign est un programme en C prenant comme entrée un fichier BAM comportant une partie header avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads (le nom de l'échantillon), et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte donc en aucun cas le fichier d'origine (Figure 5). L'intérêt est que l'on peut intégrer ce programme au sein même d'un pipeline linux d'analyse, afin de pouvoir obtenir un rapport de la qualité du séquençage. 
  
 \begin{center}
 \includegraphics[scale=0.4]{programme.png}~
@@ -241,6 +260,8 @@ find -name "*.bam" > bam.list
 ~\\
 Le programme propose à l'utilisateur de pouvoir sauvegarder un rapport complet des reads non mappés sur le génome humain qui s'alignent sur une référence de contaminant, grâce à l'option " -c " :
 \begin{lstlisting}
+
+%pl20150511 meme erreur qu'avant : ici tu écrase ton fichier bam sample.bam > sample.bam
 ./contalign -r reference.fa -o outputfile.txt -c fullreport.txt sample.bam > sample.bam\end{lstlisting}
 ~\\
 Le fichier fullreport.txt comprend 5 colonnes :
@@ -270,7 +291,7 @@ Et dernière option, il est également possible de spécifier une valeur minimum
 
 Le programme gère l'ouverture du fichier BAM donné en entrée, et récupère le nom de tous les groupes de reads et des échantillons. Il stocke toutes ces informations dans deux structures (SampleName et Group). Le nom des l'échantillons et des "Read Group" doivent être unique, afin de le vérifier, nous avons utilisé les fonctions qsort et bsearch. 
 
-La fonction qsort est un algorithme de tri selon un certain critère, ici le critère porte sur le nom, trie par ordre alphabétique. La fonction bsearch permet de rechercher un élément clé dans un tableau trié. Ces deux fonctions sont définies dans la librairie C standard (stdlib.h). L'utilisation de qsort à la place d'une bouche "for" permet d'augmenter la rapidité du programme, notamment si nous sommes confrontés à de nombreux échantillons.\\
+La fonction standard C 'qsort' est un algorithme de tri selon un certain critère, ici le critère porte sur le nom, trie par ordre alphabétique. La fonction  C 'bsearch' permet de rechercher un élément clé dans un tableau trié. Ces deux fonctions sont définies dans la librairie C standard (stdlib.h). L'utilisation de qsort à la place d'une bouche "for" permet d'augmenter la rapidité du programme, notamment si nous sommes confrontés à de nombreux échantillons.\\
 
 
 Ensuite, le programme parcourt les lignes d'alignements du fichier BAM ; et pour chaque ligne il regarde le flag associé. Si le flag indique que le read n'est pas mappé, il récupère le nom de son read group, sa séquence, et sa qualité qu'il stocke dans une structure nommée Fastq. Une fois que le programme stocke 1 000 structures Fastq (soit les informations de 1 000 reads non mappés), ces reads sont envoyés à une fonction "align" inspiré du code "example.c" des sources de BWA. \\
@@ -292,7 +313,7 @@ Dans l'échantillon HG00127, il y a eu 175 reads non mappés détectés et seule
 
 A la fin du programme, nous avons fait attention de libérer toute la mémoire allouée par les fonctions du type "malloc", "calloc, "realloc" ou encore "strdup" ; ainsi qu'à la fermeture de tous les fichiers utilisés.
 
-
+%pl20150511 à mettre dans partie discussion ?
 \subsection{Difficultés conceptuelles rencontrées}
 
 Nous avons rencontré un problème lorsque l'on désirait analyser 2 fois le même fichier BAM successivement, sur une même ligne de commande :
@@ -342,6 +363,7 @@ Afin de vérifier nos résultats, nous avons effectué des nucléotides BLAST po
 
 Suite à cela, nous avons remarqué que les reads présentant des séquences poly A avaient tendance à se mapper sur du mycoplasme. En regardant les séquences des mycoplasmes, nous avons remarqué qu'elles présentaient aussi des séquences poly A. Ces alignements sont donc des faux positifs, ce qui expliquerait pourquoi BLAST ne les trouve pas. \\
 
+%pl20150511 c'est de la discussion
 En perspective, on pourrait intégrer au programme une fonction qui permetterait de déterminer la complexité de la séquence du read non mappé. Ce read serait envoyé à BWA pour subir l'alignement uniquement si sa séquence dépasse un certain seuil de complexité. Une programme du NCBI nommé DUST permetrait ce filtre, mais en considérant la courte durée de ce stage, c'est une étape que je ne peux effectuer à temps, mais qui serait très intéressante à intégrer. 
 
 \subsection{Sur les données du laboratoire}
@@ -350,7 +372,7 @@ Pour le test sur les données du laboratoire, nous avons utilisé le programme D
 
 Cette méthode diminue le nombre de contaminants détectés, mais améliore la qualité de la détection, on se retrouve avec moins de faux positifs. 
 
-Pierre a lancé l'analyse de 3 génomes complets, mais lorsque nous avons étudié le rapport final contenant le nombre de contaminants détectés, nous nous sommes rendu compte d'une erreur (Figure 7). Le nombre de reads non mappés par échantillon était plus grand que le nombre total de reads. 
+Pierre Lindenbaum a lancé l'analyse de 3 génomes complets, mais lorsque nous avons étudié le rapport final contenant le nombre de contaminants détectés, nous nous sommes rendu compte d'une erreur (Figure 7). Le nombre de reads non mappés par échantillon était plus grand que le nombre total de reads. 
 \begin{center}
  \includegraphics[scale=0.4]{bug2.png}~\\
  \textbf{Figure 7 :} Problème lors du comptage du nombre de reads
@@ -363,11 +385,13 @@ Tout de fois, les résultats restent tout à fait interprétables. En tête de l
 \section{Conclusion}
 L'outil en C que nous avons mis en place n'apporte  certes rien de très novateur, puisque cette analyse pourrait se faire manuellement avec l'utilisation de Samtools et BWA. Cependant son grand avantage serait qu'il puisse être intégré à un pipeline d'analyse afin de participer au contrôle qualité du séquençage, puisqu'il n'affecte pas le fichier BAM ori-ginal. À l'avenir, il serait tout de même intéressant d'enrichir la base de contaminants contre laquelle les reads non mappés sont alignés, celle-ci n'étant pas forcément très exhaustive.\\
 
-Pour conclure, ce stage a parfaitement répondu à mes attentes. Mon but était de pouvoir approfondir mes connaissances en programmation en C, et de confirmer, par cette première expérience en bio-informatique, mon envie de travailler dans ce domaine. 
+%pl20150511 chic !
+Pour conclure, ce stage a parfaitement répondu à mes attentes.
+Mon but était de pouvoir approfondir mes connaissances en programmation en C, et de confirmer, par cette première expérience en bio-informatique, mon envie de travailler dans ce domaine. 
 
 Ce projet m'a permis notamment d'acquérir quelques bonnes pratiques de programmation et d'organisation de code. J'ai pu pour la première fois faire un travail de documentation sur la librairie d'un logiciel (Samtools et BWA), et par la même occasion découvrir quelques nouvelles commandes bash, qui m'étaient inconnues.  
 
-Afin de pouvoir compiler le projet, Pierre m'a fait découvrir l'utilisation et l'organisation des fichiers Makefile. Une pratique que je pourrais réutiliser lors de mes futurs projets. Tout mon travail est disponible via un repositoire "git", ce qui m'a permis de garder une trace de mon travail et de pouvoir parfois revenir à une version antérieure de mon programme. \\
+Afin de pouvoir compiler le projet, Pierre Lindenbaum m'a fait découvrir l'utilisation et l'organisation des fichiers Makefile. Une pratique que je pourrais réutiliser lors de mes futurs projets. Tout mon travail est disponible via un repositoire "git", ce qui m'a permis de garder une trace de mon travail et de pouvoir parfois revenir à une version antérieure de mon programme. \\
  
 Ce stage a conforté mon envie de travailler dans la bio-informatique et plus précisément dans l'analyse de données issues d'étude génétique. \\
  
