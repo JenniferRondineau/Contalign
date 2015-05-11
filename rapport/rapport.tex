@@ -51,10 +51,10 @@ Initial tests of the program on laboratory data have shown a possible bacterial 
 \section{Introduction}
 
 Le séquençage à haut débit produit une masse importante de données, qui ne sont utiles que si elles sont analysées. Ceci induit donc une mise en place d'un système de gestion et traitement de ces données. Dans le cas de séquençage de génome entier ou d'exome, à la sortie du séquenceur, une des étapes clés de l'analyse correspond à l'alignement des séquences sur une séquence de référence, afin de pouvoir contrôler la qualité du séquençage. \\
-Suite à cet alignement, il est possible de détecter des reads dit non mappés, c'est-à-dire qu'ils ne s'alignent pas sur le génome de référence. Ces reads peuvent correspondre à des régions dupliquées, des régions inconnues, de mauvaises qualités ou alors à une éventuelle contamination par un organisme étranger. \\
+Suite à cet alignement, il est possible de détecter des reads dit non mappés, c'est-à-dire qui ne s'alignent pas sur le génome de référence. Ces reads peuvent correspondre à des régions dupliquées, inconnues, de mauvaises qualités ou alors éventuellement contaminées par un organisme étranger. \\
 
 L'objectif de ce stage était de créer un outil en C permettant de déterminer si ces reads non mappés étaient essentiellement dus à des contaminations externes. Ce travail fut constitué de deux grandes parties. Une première partie concernant la réalisation du programme permettant la détection des reads non mappés et l'alignement des séquences sur une nouvelle référence. Ce programme fait appel à deux librairies. La librairie Samtools~\cite{SAM} permettant de lire les fichiers BAM, ainsi que la librairie de BWA~\cite{BWA} permettant de réaliser l'alignement des séquences contre une séquence de référence. La seconde partie du travail fût dédiée à la conception d'une base comportant les séquences nucléotidiques des éventuels contaminants. Pour cela, nous nous sommes basés sur nos connaissances et la littérature. \\\\
-Cette analyse aurait été possible sans passer par la création de ce nouvel outil. Grâce à Samtools nous aurions pu sélectionner seulement les reads non mappés et ensuite les aligner avec BWA sur des contaminants potentiels. L'intérêt de la création de cet outil, ça serait de pouvoir l'intégrer au sein d'un pipeline d'analyse (Figure 1), par exemple à la sortie de BWA, afin d'obtenir un rapport de la qualité du séquençage. Et par la même occasion, ce projet de programmation en C, m'a permis d'approfondir mes connaissances en programmation en C. 
+Cette analyse aurait été possible sans passer par la création de ce nouvel outil. Grâce à Samtools nous aurions pu sélectionner seulement les reads non mappés et ensuite les aligner avec BWA sur des contaminants potentiels. L'intérêt de la création de cet outil, serait de pouvoir l'intégrer au sein d'un pipeline d'analyse (Figure 1), par exemple à la sortie de BWA, afin d'obtenir un rapport de la qualité du séquençage. Ce projet me permettrait par la même occassion d'approfondir mes connaissances en programmation en C. 
 \begin{center}
 \includegraphics[scale=0.4]{illustration1.png}~\\
 \textbf{Figure 1 :} intégration de Contalign dans un pipeline
@@ -67,11 +67,11 @@ Pour finir, la dernière étape fût de tester ce programme sur des données du 
 
 \subsection{L'importance du séquençage du génome humain}
 
-La connaissance du génome complet de chaque individu permettrait de nombreuses applications dans le domaine de la médecine, ceci pourrait aider pour le diagnostic de certaines maladies ou encore pour les études génétiques. En effet, de  nombreuses maladies humaines sont dues à des mutations dans des gènes. La connaissance du génome humain dans son intégralité permettrait de pouvoir éventuellement soigner ou diagnostiquer ces maladies, grâce à la connaissance du gène impliqué. Cela pourrait faciliter la mise au point de test diagnostics à partir de l'ADN. L'identification du gène responsable d'une maladie pourrait aussi permettre de comprendre son mécanisme d'appartion et de pouvoir la prévenir en développant de nouvelles thérapies. \\
+La connaissance du génome complet de chaque individu permettrait de nombreuses applications dans le domaine de la médecine, elle aiderait pour le diagnostic de certaines maladies humaines, qui dans de nombreux cas sont dues à des mutations génétiques. La connaissance du gène impliqué permettrait de pouvoir éventuellement soigner ou diagnostiquer ces maladies. Cela pourrait faciliter la mise au point de test diagnostics à partir de l'ADN. L'identification du gène responsable d'une maladie pourrait aussi permettre de comprendre son mécanisme d'appartion et de pouvoir la prévenir en développant de nouvelles thérapies. \\
 
 Le séquençage est devenu un outil essentiel, notamment en médecine et dans le domaine de la recherche. C'est en 1977 que Sanger invente la première technique de séquençage de l'ADN, et depuis maintenant plus de 30 ans les techniques ne cessent de s'améliorer. 
 
-Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes~\cite{1000Genomes}, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de populations différentes. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques. Mais la détermination de la séquence complète du génome humain n'est que la première étape de son étude. Il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices, on appelle cette étape l'annotation. 
+Grâce à des outils de séquençage de plus en plus rapide et de moins en moins coûteux, des projets, tels que le projet 1 000 Génomes~\cite{1000Genomes}, ont pu voir le jour. Le projet 1 000 génomes, débuté en 2008, a pour but de séquencer les génomes d'au moins 1 000 individus provenant de populations différentes. Ainsi de nombreux génomes humains sont déjà complètement séquencés et disponibles par le biais de bases de données publiques. La détermination de la séquence complète du génome humain n'étant que la première étape de son étude, il est nécessaire ensuite de déterminer où se situent les gènes et leurs régions régulatrices, on appelle cette étape l'annotation. 
 
 \subsection{Principe du séquençage }
 
@@ -130,7 +130,7 @@ Le score de qualité associé à chacune des bases est codé en code ASCII, qui 
 
 Il n'existe pas d'extension de fichier standard pour les fichiers FASTQ, les extensions ".fastq" et ".fq" sont cependant les plus fréquemment utilisées. \\
 
-L'identifiant du read est parfois suivit d'un "/1" ou d'un "/2", ce qui indique que le séquençage a été fait en paired-end (Figure 3) et que les reads ont été stockés dans un seul fichier FASTQ. Le sequençage en "paired end" signifie qu'un fragment est séquencé à la fois en 5' et en 3', donnant naissance à des reads "forward" et "reverse". \\
+L'identifiant du read peut être parfois suivit d'un "/1" ou d'un "/2", ce qui indique que le séquençage a été fait en paired-end (Figure 3) et que les reads ont été stockés dans un seul fichier FASTQ. Le sequençage en "paired end" signifie qu'un fragment est séquencé à la fois en 5' et en 3', donnant naissance à des reads "forward" et "reverse". \\
 Le séquençage peut également être fait un "single-end", ce qui signifie que le fragment a été séquencé à partir d'une seule direction. 
 
 \begin{center}
@@ -180,7 +180,7 @@ En ce qui concerne la partie alignement, chaque ligne est composée de 11 colonn
 Le fichier BAM correspond à la forme binaire du fichier SAM. Le fichier BAM n'est donc pas directement lisible. La conversion du format SAM vers le format BAM est possible grâce au logiciel Samtools~\cite{SAM2}. Et la lecture des fichiers BAM est également possible par l'intermédiaire de Samtools grâce au sous-programme "samtools view". 
  \\
 \section{Le programme Contalign}
-Contalign est un programme en C prenant comme entrée un fichier BAM comportant une entête avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads, et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte donc en aucun cas le fichier d'origine (Figure 5). L'intérêt serait que l'on puisse par la suite intégrer ce programme au sein d'un pipeline d'analyse, afin de pouvoir obtenir un rapport de la qualité du séquençage. 
+Contalign est un programme en C prenant comme entrée un fichier BAM comportant une partie header avec au minimum une ligne "@RG" donnant des renseignements sur les groupes de reads, et donnant en sortie ce même fichier BAM inchangé. Ce programme n'affecte donc en aucun cas le fichier d'origine (Figure 5). L'intérêt serait que l'on puisse par la suite intégrer ce programme au sein d'un pipeline d'analyse, afin de pouvoir obtenir un rapport de la qualité du séquençage. 
  
 \begin{center}
 \includegraphics[scale=0.4]{programme.png}~
@@ -361,7 +361,7 @@ Tout de fois, les résultats restent tout à fait interprétables. En tête de l
 
 \clearpage
 \section{Conclusion}
-L'outil en C que nous avons mis en place n'apporte  certes rien de très novateur, puisque cette analyse pourrait se faire manuellement avec l'utilisation de Samtools et BWA. Cependant son grand avantage serait qu'il pourrait être intégré à un pipeline d'analyse afin de participer au contrôle qualité du séquençage, puisqu'il n'affecte pas le fichier BAM ori-ginal. À l'avenir, il serait tout de même intéressant d'enrichir la base de contaminants contre laquelle les reads non mappés sont alignés, celle-ci n'étant pas forcément très exhaustive.\\
+L'outil en C que nous avons mis en place n'apporte  certes rien de très novateur, puisque cette analyse pourrait se faire manuellement avec l'utilisation de Samtools et BWA. Cependant son grand avantage serait qu'il puisse être intégré à un pipeline d'analyse afin de participer au contrôle qualité du séquençage, puisqu'il n'affecte pas le fichier BAM ori-ginal. À l'avenir, il serait tout de même intéressant d'enrichir la base de contaminants contre laquelle les reads non mappés sont alignés, celle-ci n'étant pas forcément très exhaustive.\\
 
 Pour conclure, ce stage a parfaitement répondu à mes attentes. Mon but était de pouvoir approfondir mes connaissances en programmation en C, et de confirmer, par cette première expérience en bio-informatique, mon envie de travailler dans ce domaine. 
 
@@ -371,7 +371,7 @@ Afin de pouvoir compiler le projet, Pierre m'a fait découvrir l'utilisation et 
  
 Ce stage a conforté mon envie de travailler dans la bio-informatique et plus précisément dans l'analyse de données issues d'étude génétique. \\
  
-Pour terminer, je tiens à remercier par la même occasion mon maître de stage, Pierre, pour ses conseils, sa disponibilité, sa pédagogie et sa patience au cours de ces 2 derniers mois. J'en retiens une très bonne expérience.
+Pour terminer, je tiens à remercier par la même occasion mon maître de stage, Pierre, pour ses conseils, sa disponibilité, sa pédagogie et sa patience au cours de ces deux derniers mois. Ainsi qu'à toute l'équipe pour son accueil. J'en retiens une très bonne expérience.
 
 \clearpage
 \bibliography{mybib}
